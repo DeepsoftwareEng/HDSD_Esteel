@@ -6057,7 +6057,7 @@ kbd {
     <nav class="hd-toc-list" id="hd-toc-list"></nav>
     <div class="hd-toc-foot">
       <div class="hd-progress"><span id="hd-progress-text">Đã xem 0/10 mục</span><span class="hd-progress-bar"><span id="hd-progress-fill"></span></span></div>
-      <div class="hd-build">Cập nhật 2026-11-16</div>
+      <div class="hd-build">Cập nhật 2026-11-17</div>
     </div>
   </aside>
   <button type="button" class="hd-toc-toggle" id="hd-toc-toggle" aria-label="Mở mục lục"><mat-icon class="mat-icon" data-icon="menu"></mat-icon></button>
@@ -6667,7 +6667,7 @@ kbd {
 <div class="hd-word">
   <div class="hd-word-title">
     <span class="hd-word-logo">W</span>
-    <span class="hd-word-name" data-ref="w-title">BB nghiem thu lap dung ket cau.docx - Word</span>
+    <span class="hd-word-name" data-ref="w-title">BienBanNghiemThu.docx - Word</span>
     <span class="hd-word-ctrls"><i>—</i><i>☐</i><i>✕</i></span>
   </div>
   <div class="hd-word-tabs">
@@ -7785,45 +7785,123 @@ kbd {
   H.fold = function (s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase(); };
 
   // ================================================================ DỮ LIỆU MẪU DÙNG CHUNG
-  // Mọi mục dùng cùng một bộ dữ liệu để câu chuyện liền mạch: A2 khai báo các văn bản này,
-  // A3 tạo loại bảng "Khối lượng thi công", A4 tạo chi phí VAT…, B1–B6 dùng lại.
+  // Lấy theo dữ liệu thật trong DB ProductManageEsteel (xuất ngày 17/11/2026, chỉ sửa lỗi chính tả).
+  // Mọi mục dùng cùng một bộ dữ liệu để câu chuyện liền mạch: A2 khai báo "Hợp đồng kinh tế",
+  // A3 tạo loại bảng "Bảng hạng mục Esteel", A4 tạo chi phí "Thuế VAT (8%)", B1–B6 dùng lại.
+
+  /** Từ khóa dạng gọn "tukhoa:TRUONG[:pt][:bs][:@nguonId]" -> object như API trả về. */
+  function tuKhoas(spec) {
+    return spec.split(' ').map(function (s) {
+      var p = s.split(':'), nguon = null;
+      p.forEach(function (x) { if (x.charAt(0) === '@') nguon = +x.slice(1); });
+      return { tuKhoa: p[0], truongDuLieu: p[1], kemPhuTrachThiCong: p.indexOf('pt') > 1, kemDongBoSung: p.indexOf('bs') > 1,
+        nguonVanBanMauId: nguon, layTuVanBanKhac: nguon != null };
+    });
+  }
+  function vb(id, ten, thuTu, file, spec, moi) {
+    var t = tuKhoas(spec);
+    return { id: id, tenVanBan: ten, thuTu: thuTu, tenFile: file, isActive: true, soTuKhoa: t.length, soChuaGan: 0, tuKhoas: t, moi: !!moi };
+  }
+  H.sampleTuKhoas = tuKhoas;
+
   H.sample = {
     vanBanMaus: function () {
       return [
-        { id: 1, tenVanBan: 'Biên bản nghiệm thu vật liệu đầu vào', thuTu: 1, tenFile: 'BB nghiem thu vat lieu.docx', isActive: true, soTuKhoa: 9 },
-        { id: 2, tenVanBan: 'Biên bản nghiệm thu công việc xây dựng', thuTu: 2, tenFile: 'BB nghiem thu cong viec.docx', isActive: true, soTuKhoa: 11 },
-        { id: 3, tenVanBan: 'Biên bản nghiệm thu hoàn thành hạng mục', thuTu: 3, tenFile: 'BB nghiem thu hoan thanh.docx', isActive: true, soTuKhoa: 12 },
-        { id: 4, tenVanBan: 'Bảng tính giá trị quyết toán', thuTu: 4, tenFile: 'Bang tinh quyet toan.xlsx', isActive: true, soTuKhoa: 7, moi: true },
+        vb(2, 'Biên bản khảo sát đánh giá hiện trạng thiết bị', 1, 'BienBanKhaoSatDanhGia.docx', 'ngaythang:NGAY_THANG thanhphanky:THANH_PHAN_KY chuky:CHU_KY'),
+        vb(3, 'Giấy đề nghị thuê ngoài', 2, 'GiayDeNghi.docx', 'ngaythang:NGAY_THANG'),
+        vb(4, 'Thư mời', 3, 'ThuMoi.docx', 'sovanban:SO_VAN_BAN ngaythang:NGAY_THANG banghangmuc1:BANG_HANG_MUC'),
+        vb(5, 'Báo giá thực hiện', 4, 'BaoGia.xlsx', 'banghangmuc1:BANG_HANG_MUC ngaythang:NGAY_THANG'),
+        vb(9, 'Phiếu đánh giá đơn vị thi công', 5, 'BangDanhGiaDonVi.docx', 'bangdanhgia:BANG_HANG_MUC chiphibaogia:TONG_TIEN_VAN_BAN:@5 ngaythang:NGAY_THANG'),
+        vb(8, 'Quyết định phê duyệt chào hàng cạnh tranh', 6, 'QDPD.docx', 'sovanban:SO_VAN_BAN ngaythang:NGAY_THANG chiphibaogia:TONG_TIEN_VAN_BAN:@5 chiphibaogiatext:TONG_TIEN_VAN_BAN_CHU:@5'),
+        vb(10, 'Hợp đồng kinh tế', 7, 'HopDongKinhTe.docx', 'sovanban:SO_VAN_BAN ngaythang:NGAY_THANG tenhangmuc:HANG_MUC banghangmuc:BANG_HANG_MUC:bs chiphihopdong:TONG_TIEN_VAN_BAN chiphihopdongtext:TONG_TIEN_VAN_BAN_CHU'),
+        vb(11, 'Phương án thi công', 8, 'PA thi cong an toan.docx', 'sovanban:SO_VAN_BAN ngaythang:NGAY_THANG_HOA thanhphanky1:THANH_PHAN_KY_THU_TU thanhphanky2:THANH_PHAN_KY_THU_TU thanhphanky3:THANH_PHAN_KY_THU_TU thanhphanky4:THANH_PHAN_KY_THU_TU thanhphanky5:THANH_PHAN_KY_THU_TU thanhphanthicong:PHU_TRACH_THI_CONG'),
+        vb(12, 'Biên bản bàn giao nhận vật tư số 1', 9, 'BienBanGiaoNhanVatTu.docx', 'ngaythang:NGAY_THANG thanhphanky:THANH_PHAN_KY banghangmuc:BANG_HANG_MUC chuky:CHU_KY'),
+        vb(13, 'Biên bản giao nhận vật tư số 2', 10, 'BienBanGiaoNhanSo2.docx', 'ngaythang:NGAY_THANG thanhphanky:THANH_PHAN_KY bangdanhmuc:BANG_HANG_MUC chuky:CHU_KY'),
+        vb(14, 'Biên bản bàn giao mặt bằng để thi công', 11, 'BienBanBanGiaoMatBang.docx', 'sovanban:GHI_CHU ngaythang:NGAY_THANG hangmuc:HANG_MUC thanhphanchuky:THANH_PHAN_KY banghangmuc:BANG_HANG_MUC chuky:CHU_KY'),
+        vb(15, 'Biên bản nghiệm thu sau khi thi công lắp đặt', 12, 'BienBanNghiemThu.docx', 'ngaythang:NGAY_THANG sovanban:SO_VAN_BAN hangmuc:HANG_MUC thanhphanky:THANH_PHAN_KY banghangmuc:BANG_HANG_MUC chuky:CHU_KY'),
+        vb(1, 'Biên bản thu hồi vật tư', 13, '13. BB thu hồi vật tư.docx', 'ngaythang:NGAY_THANG thanhphanky1:THANH_PHAN_KY_THU_TU thanhphanky2:THANH_PHAN_KY_THU_TU thanhphanky3:THANH_PHAN_KY_THU_TU thanhphanthicong:PHU_TRACH_THI_CONG thanhphanky:CHU_KY:pt'),
+        vb(16, 'Biên bản tổng hợp khối lượng làm việc', 14, 'Biên bản tổng hợp khối lượng làm việc.docx', 'ngaythang:NGAY_THANG thanhphanky:THANH_PHAN_KY banghangmuc:BANG_HANG_MUC chuky:CHU_KY'),
+        vb(17, 'Bảng tổng hợp quyết toán khối lượng hoàn thành', 15, 'BangTongHopQuyetToanKhoiLuong.docx', 'ngaythang:NGAY_THANG sovanban:SO_VAN_BAN hangmuc:HANG_MUC thanhphanky:THANH_PHAN_KY chuky:CHU_KY'),
+        vb(18, 'Biên bản nghiệm thu hoàn thành và bàn giao đưa vào sử dụng', 16, 'BienBanNghiemThuHoanThanhVaBanGiao.docx', 'ngaythang:NGAY_THANG hangmuc:HANG_MUC sohopdont:SO_VAN_BAN:@10 ngayhopdong:NGAY_THANG:@10 banghangmuc:BANG_HANG_MUC chuky:CHU_KY phutrachthicong:PHU_TRACH_THI_CONG'),
+        vb(19, 'Thanh lý hợp đồng', 18, 'ThanhLyHopDong.docx', 'sovanban:SO_VAN_BAN hangmuc:HANG_MUC sohopdong:SO_VAN_BAN:@10 ngayhopdong:NGAY_THANG:@10 ngaythang:NGAY_THANG'),
+        // Khai báo sau cùng: B6 dùng làm "văn bản mới" để minh họa nút Đồng bộ
+        vb(20, 'Nhật ký thi công', 19, 'NhatKyThiCong.docx', 'hangmuc:HANG_MUC sohopdong:SO_VAN_BAN:@10 ngayhopdong:NGAY_THANG:@10 tongchiphi:TONG_TIEN_VAN_BAN:@10 ngaythang:NGAY_THANG', true),
       ];
     },
     loaiBangs: function () {
       return [
-        { id: 1, tenLoaiBang: 'Khối lượng thi công', thuTu: 1, tuDanhStt: true, isActive: true, soHoSo: 3, cots: [
-          { id: 11, tieuDe: 'Nội dung công việc', doRong: 40, kieuSo: false, donVi: null, nhomCha: null },
-          { id: 12, tieuDe: 'ĐVT', doRong: 8, kieuSo: false, donVi: null, nhomCha: null },
-          { id: 13, tieuDe: 'Khối lượng', doRong: 12, kieuSo: true, donVi: null, nhomCha: null },
-          { id: 14, tieuDe: 'Đơn giá', doRong: 15, kieuSo: true, donVi: 'đồng', nhomCha: 'Giá trị' },
-          { id: 15, tieuDe: 'Thành tiền', doRong: 19, kieuSo: true, donVi: 'đồng', nhomCha: 'Giá trị' },
+        { id: 1, tenLoaiBang: 'Bảng hạng mục Esteel', thuTu: 1, tuDanhStt: true, isActive: true, soHoSo: 1, cots: [
+          { id: 1, tieuDe: 'NỘI DUNG', doRong: 30, kieuSo: false, donVi: null, nhomCha: null },
+          { id: 2, tieuDe: 'ĐVT', doRong: 6, kieuSo: false, donVi: null, nhomCha: null },
+          { id: 3, tieuDe: 'SỐ LG', doRong: 10, kieuSo: false, donVi: null, nhomCha: null },
+          { id: 4, tieuDe: 'ĐƠN GIÁ', doRong: 15, kieuSo: true, donVi: 'đồng', nhomCha: null },
+          { id: 5, tieuDe: 'THÀNH TIỀN', doRong: 15, kieuSo: true, donVi: 'đồng', nhomCha: null },
+          { id: 6, tieuDe: 'GHI CHÚ', doRong: 18, kieuSo: false, donVi: null, nhomCha: null },
         ] },
-        { id: 2, tenLoaiBang: 'Danh mục vật liệu', thuTu: 2, tuDanhStt: true, isActive: true, soHoSo: 1, cots: [
-          { id: 21, tieuDe: 'Tên vật liệu', doRong: 40, kieuSo: false, donVi: null, nhomCha: null },
-          { id: 22, tieuDe: 'Quy cách', doRong: 30, kieuSo: false, donVi: null, nhomCha: null },
-          { id: 23, tieuDe: 'Xuất xứ', doRong: null, kieuSo: false, donVi: null, nhomCha: null },
+        { id: 2, tenLoaiBang: 'Bảng đánh giá', thuTu: 1, tuDanhStt: true, isActive: true, soHoSo: 1, cots: [
+          { id: 7, tieuDe: 'Đơn vị thi công', doRong: 15, kieuSo: false, donVi: null, nhomCha: null },
+          { id: 8, tieuDe: 'Địa chỉ', doRong: 15, kieuSo: false, donVi: null, nhomCha: null },
+          { id: 9, tieuDe: 'Giá (chưa VAT)', doRong: 15, kieuSo: false, donVi: null, nhomCha: 'Chỉ tiêu' },
+          { id: 10, tieuDe: 'Tiến độ thực hiện', doRong: 15, kieuSo: false, donVi: null, nhomCha: 'Chỉ tiêu' },
+          { id: 11, tieuDe: 'Thanh toán', doRong: 19, kieuSo: false, donVi: null, nhomCha: 'Chỉ tiêu' },
+          { id: 12, tieuDe: 'Bảo hành', doRong: 15, kieuSo: false, donVi: null, nhomCha: 'Chỉ tiêu' },
         ] },
       ];
     },
     chiPhis: function () {
       return [
-        { id: 1, tenChiPhi: 'Thuế VAT {x}%', congThuc: 'TONG * x%', laTru: false, thuTu: 1, isActive: true, soLanDung: 4 },
-        { id: 2, tenChiPhi: 'Giảm trừ tạm ứng', congThuc: 'x', laTru: true, thuTu: 2, isActive: true, soLanDung: 1 },
-        { id: 3, tenChiPhi: 'Chi phí dự phòng {x}%', congThuc: 'TREN * x%', laTru: false, thuTu: 3, isActive: true, soLanDung: 0 },
+        { id: 1, tenChiPhi: 'Thuế VAT (8%)', congThuc: 'TONG*x%', laTru: false, thuTu: 1, isActive: true, soLanDung: 1 },
+      ];
+    },
+    /** Bảng hạng mục id 5 của hồ sơ 1 (loại "Bảng hạng mục Esteel"), mỗi dòng: [STT sửa tay | null, NỘI DUNG, ĐVT, SỐ LG, ĐƠN GIÁ, THÀNH TIỀN, GHI CHÚ].
+     *  Dòng nhóm I, II, III mang số tổng của nhóm: I + II + III = 95.990.000. */
+    bangHangMuc: function () {
+      return [
+        ['', 'THÁO DỠ VÀ LẮP ĐẶT THAY THẾ ĐOẠN ỐNG KHÍ THẢI PHUN SẤY PAC', 'Hệ', '1', '95990000', '95990000'],
+        ['I', 'Công tác chuẩn bị:', '', '', '', '2900000'],
+        [null, 'Khảo sát công việc, căng dây, đặt biển báo, chuẩn bị vị trí tập kết vật tư;', 'Hệ', '1', '600000', '600000'],
+        [null, 'Công tác lĩnh vật tư tới vị trí thi công;', 'Gói', '1', '800000', '800000'],
+        ['', 'Vận chuyển vật tư tới vị trí thi công:\n- Ống D1500x6000 Composite: 01 đoạn\n- Ống D1500x7000 Thép phủ composite: 01 đoạn;\n- Gioăng cao su D1640 x d1510 x 5 mm: 10 cái;\n- Dây cáp thép bọc nhựa D12: 450m\n- Khoá cáp inox D12, SUS304: 80 cái\n- Tăng đơ inox M24: 12 cái\n- Bu lông đai ốc 8.8 M16x100: 160 bộ\n- Keo silicol loại A500; 300ml: 10 hộp', '', '', '', '', 'HCVT cấp'],
+        [null, 'Vật tư phụ (Đá mài, đá cắt, que hàn, oxy, gas)', 'Gói', '1', '1500000', '1500000'],
+        ['II', 'Thi công sửa chữa', '', '', '', '32640000'],
+        [null, 'Chuẩn bị giỏ nâng người gắn xe cẩu và các biện pháp an toàn khi thao tác trên cao;', 'Gói', '1', '1500000', '1500000'],
+        [null, 'Treo cáp cẩu và buộc cáp giữ ống khí thải D1500 ở cốt +44m vào đầu cần cẩu 120 tấn để neo giữ (Sử dụng cẩu 50 tấn đưa giỏ nâng người tới vị trí thi công)', 'Lượt', '1', '1600000', '1600000'],
+        [null, 'Tháo bu lông kết nối đoạn số 03 và 04 vị trí cốt +26m; Số lượng: 40 bộ (Sử dụng cẩu 50 tấn đưa giỏ nâng người tới vị trí thi công)', 'Vị trí', '1', '1450000', '1450000'],
+        [null, 'Tháo dây neo giữ ống khí thải cho các đoạn 1, 2, 3 từ Cốt +44m xuống Cốt +26m. Số lượng: 03 sợi/đoạn = 09 sợi (Sử dụng cẩu 50 tấn đưa giỏ nâng người tới vị trí thi công)', 'Sợi', '9', '160000', '1440000'],
+        [null, 'Tháo dỡ ống khí thải D1500 (đoạn số 01, 02, 03) xuống cốt + 0m (Sử dụng cẩu 120 tấn)', 'M', '18', '120000', '2160000'],
+        [null, 'Treo cáp cẩu và buộc cáp giữ ống khí thải D1500 vị trí cốt +26m (Đoạn 04,05,06) vào đầu cần cẩu 120 tấn để neo giữ (Sử dụng cẩu 50 tấn đưa giỏ nâng người tới vị trí thi công)', 'Lượt', '1', '1400000', '1400000'],
+        [null, 'Tháo khớp nối mềm với ống khí thải sang tháp số 1 (D1100)', 'Vị trí', '1', '500000', '500000'],
+        [null, 'Cắt, tách rời tai đỡ ống khí thải D1500 với sàn giá. Số lượng: 08 cái', 'Cái', '8', '230000', '1840000'],
+        [null, 'Tháo dây neo ống khí thải đoạn số 04 vị trí Cốt +23m, thu gọn các dây. Số lượng: 05 sợi (Sử dụng cẩu 50 tấn đưa giỏ nâng người tới vị trí thi công)', 'Sợi', '5', '150000', '750000'],
+        [null, 'Tháo rời các đoạn ống khí thải D1500 (đoạn số 04, 05, 06) xuống cốt + 0m để thay mới đoạn ống bị hỏng (Sử dụng cẩu 120 tấn)', 'M', '19,5', '100000', '1950000'],
+        [null, 'Khoan lỗ 02 mặt bích đoạn số 05 (D1500x6000) theo thực tế. Số lượng: 40 lỗ/ bích;', 'Lỗ', '80', '15500', '1240000'],
+        [null, 'Lắp đoạn ống khí thải D1500 (Đoạn 04, 05, 06. Lắp đặt gioăng và bu lông, đai ốc;', 'Đoạn', '3', '750000', '2250000'],
+        [null, 'Thay khoá cáp dây neo đoạn số 4 (05 sợi)', 'Sợi', '5', '80000', '400000'],
+        [null, 'Lắp dựng đoạn ống khí thải D1500 số 04, 05, 06 (Đã lắp đặt kết nối 03 đoạn) từ cốt +6,5 tới cốt +26m. Cẩu neo, căn chỉnh ống thẳng đứng (Sử dụng cẩu 120 tấn)', 'M', '19,5', '120000', '2340000'],
+        [null, 'Lắp đặt, căng, căn chỉnh dây neo giữ ống khí thải đoạn 04 từ Cốt +23m. Số lượng: 05 sợi', 'Sợi', '5', '220000', '1100000'],
+        [null, 'Căn chỉnh và gá hàn gối đỡ ống thoát khí đảm bảo cân bằng và chịu lực;', 'Cái', '8', '280000', '2240000'],
+        [null, 'Lắp dựng đoạn ống khí thải D1500 số 01, 02, 03 từ cốt +26m tới cốt +44m. Cẩu neo, căn chỉnh ống thẳng đứng (Sử dụng cẩu 120 tấn);', 'M', '18', '175000', '3150000'],
+        [null, 'Lắp đặt gioăng, dán keo, bắt bu lông kết nối đoạn số 04 và 03 (Sử dụng cẩu 50 tấn đưa giỏ nâng người tới vị trí thi công)', 'Vị trí', '1', '1400000', '1400000'],
+        [null, 'Kết nối ống mềm giữa ống khí thải với Tháp phun sấy số 1', 'Vị trí', '1', '500000', '500000'],
+        [null, 'Thay các dây neo mới: căn chỉnh, căng dây neo giữ ống khí thải đoạn 01,02,03 bằng tăng đơ từ Cốt +26m đến Cốt +44 m. Số lượng: 09 sợi (Sử dụng cẩu 50 tấn đưa giỏ người tới vị trí thi công);', 'Sợi', '9', '270000', '2430000'],
+        [null, 'Vận chuyển các loại vật tư còn sử dụng được về vị trí tập kết, vận chuyển đoạn ống khí thải hỏng, các loại vật tư không sử dụng về bãi phế thải Công ty, vệ sinh thu dọn mặt bằng sạch sẽ;', 'Hệ', '1', '1000000', '1000000'],
+        ['III', 'Cẩu vận chuyển và lắp đặt - Máy thi công', '', '', '', '60450000'],
+        [null, 'Cẩu 50 tấn cẩu giỏ người tới các vị trí thi công trên cao;', 'Ca', '1,5', '7500000', '11250000'],
+        [null, 'Sử dụng cẩu 120 tấn thi công neo giữ, tháo dỡ, lắp đặt thay thế các đoạn ống khí thải;', 'Ca', '1,5', '31000000', '46500000'],
+        [null, 'Xe cẩu tự hành 3.5 tấn cẩu thiết bị, vật tư tới vị trí thi công. Cẩu vận chuyển các đoạn ống khí thải hỏng, vật tư thay thế tới bãi phế thải.', 'Ca', '0,5', '5400000', '2700000'],
+      ];
+    },
+    /** Thành phần ký thật của hồ sơ 1 (cả 3 người đều ký chính). */
+    nguoiKys: function () {
+      return [
+        { hoTen: 'Ông: Lương Đình Hưng', chucVu: 'KTV NMHN I', laKyChinh: true },
+        { hoTen: 'Ông: Phan Hồng Hải', chucVu: 'PT An toàn', laKyChinh: true },
+        { hoTen: 'Ông: Nguyễn Đình Quý', chucVu: 'KTV Phòng CĐ', laKyChinh: true },
       ];
     },
     hoSos: function () {
       return [
-        { id: 15, tenHoSo: 'Hồ sơ nghiệm thu nhà xưởng Lô B', hangMuc: 'Kết cấu thép nhà xưởng Lô B', chuDauTu: 'Công ty TNHH Cơ khí Minh Phát', nhaThau: 'Công ty CP Thép Esteel', soHoaDon: '0001234', giaTri: 1250000000, ngayTao: '12/11/2026' },
-        { id: 14, tenHoSo: 'Hồ sơ nghiệm thu mái che kho hàng', hangMuc: 'Mái tôn và xà gồ', chuDauTu: 'Công ty CP Logistics Sao Việt', nhaThau: 'Công ty CP Thép Esteel', soHoaDon: '0001198', giaTri: 486500000, ngayTao: '03/11/2026' },
-        { id: 12, tenHoSo: 'Hồ sơ hoàn công cầu thang thép', hangMuc: null, chuDauTu: 'Trường THCS Nguyễn Du', nhaThau: 'Công ty CP Thép Esteel', soHoaDon: null, giaTri: 92000000, ngayTao: '21/10/2026' },
+        { id: 1, tenHoSo: 'Hồ sơ quyết toán', hangMuc: 'Tháo dỡ và lắp đặt thay thế đoạn ống khí thải phun sấy PAC', chuDauTu: 'Công ty cổ phần Hóa chất Việt Trì', nhaThau: 'Công ty TNHH Cơ khí E-Steel', soHoaDon: '228', giaTri: 118490000, ngayTao: '09/11/2026' },
       ];
     },
   };
@@ -7990,7 +8068,7 @@ kbd {
         s.t('vb-xoa-' + r.id).addEventListener('click', function () {
           s.confirm('Xóa văn bản "' + r.tenVanBan + '" khỏi danh mục?', function (ok) {
             if (!ok) return;
-            if (r.id <= 4) { s.toast("Văn bản đã được dùng trong hồ sơ, không thể xóa. Hãy chuyển sang 'Ngừng sử dụng'.", 'error'); return; }
+            if (H.sampleHoSo().chiTiets.some(function (c) { return c.vanBanMauId === r.id; })) { s.toast("Văn bản đã được dùng trong hồ sơ, không thể xóa. Hãy chuyển sang 'Ngừng sử dụng'.", 'error'); return; }
             st.vanBans = st.vanBans.filter(function (v) { return v !== r; });
             s.toast('Xóa văn bản thành công', 'success');
             H.screens['danh-muc-van-ban'].update(s);
@@ -8129,9 +8207,9 @@ kbd {
   function singleLine(raw) { return String(raw || '').replace(/\s*\n\s*/g, ' ').trim(); }
 
   /** Vùng copy mẫu từ Excel dùng khi nhấn Ctrl+V trong bản mô phỏng (kèm dòng tiêu đề lỡ copy cùng). */
-  H.HM_SAMPLE_TSV = 'Nội dung công việc\tĐVT\tKhối lượng\tĐơn giá\tThành tiền\n' +
-    'Sơn chống gỉ kết cấu thép\tm2\t320\t45.000\t14.400.000\n' +
-    'Lợp tôn mái dày 0,45mm\tm2\t540\t185.000\t99.900.000';
+  H.HM_SAMPLE_TSV = 'NỘI DUNG\tĐVT\tSỐ LG\tĐƠN GIÁ\tTHÀNH TIỀN\n' +
+    'Khảo sát công việc, căng dây, đặt biển báo, chuẩn bị vị trí tập kết vật tư;\tHệ\t1\t600.000\t600.000\n' +
+    'Công tác lĩnh vật tư tới vị trí thi công;\tGói\t1\t800.000\t800.000';
 
   // ================================================================ component
   function key(id) { return String(id); }
@@ -8614,7 +8692,7 @@ kbd {
           else s.toast('Đang xuất "' + r.tenHoSo + '.zip"… (mô phỏng)', 'info');
         });
         s.t('hs-' + i + '-sua').addEventListener('click', function () {
-          var hs = r.id === 15 ? H.sampleHoSo() : Object.assign(H.newHoSo(), {
+          var hs = r.id === 1 ? H.sampleHoSo() : Object.assign(H.newHoSo(), {
             id: r.id, tenHoSo: r.tenHoSo, hangMuc: r.hangMuc || '', chuDauTu: r.chuDauTu || '', nhaThau: r.nhaThau || '',
             soHoaDon: r.soHoaDon || '', giaTri: r.giaTri != null ? String(r.giaTri) : '',
           });
@@ -8967,35 +9045,39 @@ kbd {
   var H = window.HDSD;
   var esc = H.esc, SignerEditor = H.SignerEditor;
 
-  /** Hồ sơ mẫu (id 15). bangKeys: văn bản có từ khóa #banghangmuc# (kemDongBoSung = mặc định theo danh mục). */
+  /** 1 dòng văn bản của hồ sơ từ văn bản mẫu. bangKeys: từ khóa gán Bảng hạng mục (kemDongBoSung = mặc định theo danh mục). */
+  H.chiTietFrom = function (v) {
+    return { vanBanMauId: v.id, tenVanBan: v.tenVanBan, vanBanIsActive: true, soVanBan: '', ngayThang: '', ghiChu: '', nguoiKys: [],
+      bangKeys: v.tuKhoas.filter(function (t) { return t.truongDuLieu === 'BANG_HANG_MUC'; }).map(function (t) { return { kemDongBoSung: t.kemDongBoSung }; }) };
+  };
+
+  /** Hồ sơ mẫu = hồ sơ id 1 trong DB, chưa nhập ngày/số/người ký (B3–B5 nhập dần).
+   *  Thứ tự dòng theo hồ sơ thật (văn bản 1 được thêm trước, các văn bản khác đồng bộ sau). */
   H.sampleHoSo = function () {
+    var vbs = H.sample.vanBanMaus();
+    var byId = function (id) { return vbs.filter(function (v) { return v.id === id; })[0]; };
     return {
-      id: 15,
-      tenHoSo: 'Hồ sơ nghiệm thu nhà xưởng Lô B',
-      hangMuc: 'Kết cấu thép nhà xưởng Lô B',
-      chuDauTu: 'Công ty TNHH Cơ khí Minh Phát',
-      nhaThau: 'Công ty CP Thép Esteel',
-      soHoaDon: '0001234',
-      phuTrachThiCong: 'Ông: Lê Văn Cường',
-      giaTri: '1250000000',
+      id: 1,
+      tenHoSo: 'Hồ sơ quyết toán',
+      hangMuc: 'Tháo dỡ và lắp đặt thay thế đoạn ống khí thải phun sấy PAC',
+      chuDauTu: 'Công ty cổ phần Hóa chất Việt Trì',
+      nhaThau: 'Công ty TNHH Cơ khí E-Steel',
+      soHoaDon: '228',
+      phuTrachThiCong: 'Ông: Trần Hồng Quang',
+      giaTri: '118490000',
       soVanBanMoi: 0,
       bangs: [],
-      chiTiets: [
-        { vanBanMauId: 1, tenVanBan: 'Biên bản nghiệm thu vật liệu đầu vào', vanBanIsActive: true, soVanBan: '', ngayThang: '', ghiChu: '', nguoiKys: [], bangKeys: [] },
-        { vanBanMauId: 2, tenVanBan: 'Biên bản nghiệm thu công việc xây dựng', vanBanIsActive: true, soVanBan: '', ngayThang: '', ghiChu: '', nguoiKys: [], bangKeys: [{ n: 1, kemDongBoSung: false }] },
-        { vanBanMauId: 3, tenVanBan: 'Biên bản nghiệm thu hoàn thành hạng mục', vanBanIsActive: true, soVanBan: '', ngayThang: '', ghiChu: '', nguoiKys: [], bangKeys: [{ n: 1, kemDongBoSung: true }] },
-      ],
+      chiTiets: [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map(function (id) { return H.chiTietFrom(byId(id)); }),
     };
   };
 
-  /** Hồ sơ mới (them-moi): mỗi văn bản đang dùng trong danh mục thành 1 dòng (api/hs-ho-so/new-template). */
+  /** Hồ sơ mới (them-moi): mỗi văn bản đang dùng trong danh mục thành 1 dòng, theo Thứ tự (api/hs-ho-so/new-template). */
   H.newHoSo = function () {
     return {
       id: 0, tenHoSo: '', hangMuc: '', chuDauTu: '', nhaThau: '', soHoaDon: '', phuTrachThiCong: '', giaTri: '',
       soVanBanMoi: 0, bangs: [],
-      chiTiets: H.sample.vanBanMaus().filter(function (v) { return v.isActive; }).map(function (v) {
-        return { vanBanMauId: v.id, tenVanBan: v.tenVanBan, vanBanIsActive: true, soVanBan: '', ngayThang: '', ghiChu: '', nguoiKys: [], bangKeys: [] };
-      }),
+      chiTiets: H.sample.vanBanMaus().filter(function (v) { return v.isActive; })
+        .sort(function (a, b) { return a.thuTu - b.thuTu; }).map(H.chiTietFrom),
     };
   };
 
@@ -9061,7 +9143,8 @@ kbd {
       if (!err) hs.bangs.some(function (b, i) { if (!String(b.tenBang || '').trim()) { err = 'Vui lòng nhập tên cho bảng hạng mục thứ ' + (i + 1); return true; } });
       if (err) { s.toast(err, 'error'); return false; }
       if (!hs.id) {
-        hs.id = 16; // hồ sơ mới: URL them-moi -> /16
+        // hồ sơ mới: URL them-moi -> /<id mới>
+        hs.id = Math.max.apply(null, (s.state.hoSos || H.sample.hoSos()).map(function (r) { return r.id; }).concat([0])) + 1;
         s.setUrl(this.url(s));
       }
       st.dirty = false;
@@ -9082,7 +9165,7 @@ kbd {
         var hs = st.hoSo;
         if (hs.id && !list.some(function (r) { return r.id === hs.id; })) {
           list.unshift({ id: hs.id, tenHoSo: hs.tenHoSo, hangMuc: hs.hangMuc || null, chuDauTu: hs.chuDauTu || null, nhaThau: hs.nhaThau || null,
-            soHoaDon: hs.soHoaDon || null, giaTri: hs.giaTri ? Number(String(hs.giaTri).replace(/\D/g, '')) : null, ngayTao: '16/11/2026' });
+            soHoaDon: hs.soHoaDon || null, giaTri: hs.giaTri ? Number(String(hs.giaTri).replace(/\D/g, '')) : null, ngayTao: '09/11/2026' });
         }
         s.show('ho-so-list');
       };
@@ -9497,14 +9580,15 @@ kbd {
   };
 
   // ---------------------------------------------------------------- file trong hộp chọn file giả
+  // Từ khóa lấy theo file mẫu thật trong DB (HS_VanBanMau_TuKhoas)
   var FILES = [
-    { name: 'BB nghiem thu lap dung ket cau.docx', date: '14/11/2026 09:12', size: '38 KB',
-      tuKhoas: ['so_van_ban', 'cong_trinh', 'chu_dau_tu', 'nha_thau', 'ngay_thang', 'thanh_phan_ky', 'banghangmuc', 'chu_ky'] },
-    { name: 'Bang tinh quyet toan.xlsx', date: '10/11/2026 16:40', size: '21 KB',
-      tuKhoas: ['ten_ho_so', 'hang_muc', 'chu_dau_tu', 'ngay_thang', 'banghangmuc', 'tong_tien_van_ban', 'tong_tien_van_ban_chu'] },
-    { name: 'BB nghiem thu vat lieu.docx', date: '02/11/2026 08:05', size: '35 KB',
-      tuKhoas: ['so_van_ban', 'hang_muc', 'chu_dau_tu', 'nha_thau', 'ngay_thang', 'thanh_phan_ky', 'chu_ky', 'ghi_chu', 'tenhoso'] },
-    { name: 'BB nghiem thu (mau cu 2010).doc', date: '21/05/2019 10:30', size: '64 KB', tuKhoas: [] },
+    { name: 'HopDongKinhTe.docx', date: '11/11/2026 21:06', size: '46 KB',
+      tuKhoas: ['sovanban', 'ngaythang', 'tenhangmuc', 'banghangmuc', 'chiphihopdong', 'chiphihopdongtext'] },
+    { name: 'BaoGia.xlsx', date: '10/11/2026 19:45', size: '24 KB',
+      tuKhoas: ['banghangmuc1', 'ngaythang'] },
+    { name: 'BienBanNghiemThu.docx', date: '11/11/2026 22:01', size: '41 KB',
+      tuKhoas: ['ngaythang', 'sovanban', 'hangmuc', 'thanhphanky', 'banghangmuc', 'chuky'] },
+    { name: 'Hop dong kinh te (mau cu).doc', date: '21/05/2019 10:30', size: '64 KB', tuKhoas: [] },
   ];
   H.vbFiles = FILES;
 
@@ -9538,7 +9622,7 @@ kbd {
     var f = src && FILES.filter(function (x) { return x.name === src.tenFile; })[0];
     var m = st.vbModel = src
       ? { id: src.id, tenVanBan: src.tenVanBan, thuTu: src.thuTu, tenFile: src.tenFile, fCode: 'F' + src.id, isActive: src.isActive,
-        tuKhoas: (src.tuKhoas || (f ? f.tuKhoas : ['so_van_ban', 'hang_muc', 'chu_dau_tu', 'nha_thau', 'ngay_thang', 'thanh_phan_ky', 'chu_ky']).map(newTuKhoa)) }
+        tuKhoas: src.tuKhoas ? JSON.parse(JSON.stringify(src.tuKhoas)) : (f ? f.tuKhoas : ['sovanban', 'hangmuc', 'ngaythang', 'thanhphanky', 'chuky']).map(newTuKhoa) }
       : { id: 0, tenVanBan: '', thuTu: 1, tenFile: '', fCode: '', isActive: true, tuKhoas: [] };
     var isAdd = !src;
 
@@ -10111,36 +10195,28 @@ kbd {
   // @icons description table_chart folder_zip download close visibility edit_note menu_book check_circle
 
   // ---------------------------------------------------------------- dữ liệu mẫu cho văn bản
-  /** Bảng hạng mục mẫu (loại "Khối lượng thi công") — dùng khi hồ sơ trong mục chưa có bảng. */
-  var BANG_MAU = {
-    tenBang: 'Khối lượng thi công',
-    dongs: [
-      ['Gia công kết cấu thép cột, kèo', 'kg', '12.450', '28.500', '354.825.000'],
-      ['Lắp dựng kết cấu thép', 'kg', '12.450', '4.200', '52.290.000'],
-      ['Lợp mái tôn mạ màu 0,45 mm', 'm2', '1.860', '165.000', '306.900.000'],
-    ],
-    tongCong: '714.015.000', nhan: '(1 + 2 + 3)',
-    chiPhis: [['Thuế VAT 10%', '71.401.500']],
-    tongTien: '785.416.500',
-    bangChu: 'Bảy trăm tám mươi lăm triệu bốn trăm mười sáu nghìn năm trăm đồng chẵn',
-  };
+  function so(v) { return v ? String(v).replace(/\B(?=(\d{3})+(?!\d))/g, '.') : ''; }
+  /** Bảng hạng mục in vào văn bản = bảng thật của hồ sơ 1 (H.sample.bangHangMuc) + dòng bổ sung với Thuế VAT (8%). */
+  var BANG_MAU = (function () {
+    var tong = 95990000, vat = Math.round(tong * 8 / 100);
+    return { tongCong: so(tong), nhan: '(I + II + III)', chiPhis: [['Thuế VAT (8%)', so(vat)]], tongTien: so(tong + vat), tongTienSo: tong + vat };
+  })();
 
-  /** Người ký mẫu khi dòng văn bản chưa nhập (A1). */
-  H.sampleNguoiKys = function () {
-    return [
-      { hoTen: 'Ông: Nguyễn Văn An', chucVu: 'Giám đốc', laKyChinh: true },
-      { hoTen: 'Bà: Trần Thị Bình', chucVu: 'Kỹ sư giám sát', laKyChinh: false },
-      { hoTen: 'Ông: Phạm Quốc Huy', chucVu: 'Đội trưởng thi công', laKyChinh: true },
-    ];
-  };
+  /** Người ký mẫu = thành phần ký thật của hồ sơ 1. */
+  H.sampleNguoiKys = function () { return H.sample.nguoiKys(); };
 
-  /** Hồ sơ mẫu đã nhập đủ (A1 xem kết quả, B6). */
+  /** Hồ sơ 1 đã nhập (A1 xem kết quả, B6): ngày, số văn bản theo DB; người ký đã "Áp dụng cho tất cả". */
   H.sampleHoSoDaNhap = function () {
     var hs = H.sampleHoSo();
-    hs.chiTiets.forEach(function (c, i) {
-      c.vanBanMauId = i + 1;
-      c.soVanBan = ('0' + (i + 1)).slice(-2) + '/2026/BB-NT';
-      c.ngayThang = ['05/03/2026', '12/03/2026', '20/03/2026'][i];
+    var thucTe = {
+      1: { ngayThang: '26/10/2026' },
+      5: { ngayThang: '14/10/2026' },
+      8: { ngayThang: '15/10/2026', soVanBan: '15.10/QĐ-HCVT' },
+      9: { ngayThang: '14/10/2026' },
+      10: { ngayThang: '16/10/2026', soVanBan: '16.10/2026/HĐKT/HCVT-ESTEEL' },
+    };
+    hs.chiTiets.forEach(function (c) {
+      Object.assign(c, thucTe[c.vanBanMauId] || {});
       c.nguoiKys = H.sampleNguoiKys();
     });
     return hs;
@@ -10197,67 +10273,72 @@ kbd {
       }).join('') + '</div>'
       : '';
 
-    var b = BANG_MAU;
+    // Bảng loại "Bảng hạng mục Esteel": STT tự đánh cho dòng không sửa tay; ĐƠN GIÁ, THÀNH TIỀN kiểu số
+    var b = BANG_MAU, stt = 0;
     var bang = '<table class="hd-doc-grid hd-fill-block"><thead>' +
-      '<tr><th rowspan="2">STT</th><th rowspan="2">Nội dung công việc</th><th rowspan="2">ĐVT</th><th rowspan="2">Khối lượng</th><th colspan="2">Giá trị</th></tr>' +
-      '<tr><th>Đơn giá</th><th>Thành tiền</th></tr></thead><tbody>' +
-      b.dongs.map(function (d, i) {
-        return '<tr><td class="c">' + (i + 1) + '</td><td>' + esc(d[0]) + '</td><td class="c">' + d[1] + '</td><td class="r">' + d[2] + '</td><td class="r">' + d[3] + '</td><td class="r">' + d[4] + '</td></tr>';
+      '<tr><th>STT</th><th>NỘI DUNG</th><th>ĐVT</th><th>SỐ LG</th><th>ĐƠN GIÁ</th><th>THÀNH TIỀN</th><th>GHI CHÚ</th></tr></thead><tbody>' +
+      H.sample.bangHangMuc().map(function (d) {
+        var nhom = !!d[0];
+        return '<tr' + (nhom ? ' class="b"' : '') + '><td class="c">' + (d[0] == null ? ++stt : esc(d[0])) + '</td><td>' + esc(d[1]).replace(/\n/g, '<br>') +
+          '</td><td class="c">' + esc(d[2] || '') + '</td><td class="r">' + esc(d[3] || '') + '</td><td class="r">' + so(d[4]) + '</td><td class="r">' + so(d[5]) +
+          '</td><td>' + esc(d[6] || '') + '</td></tr>';
       }).join('') +
-      '<tr class="b"><td></td><td colspan="4">TỔNG CỘNG ' + b.nhan + '</td><td class="r">' + b.tongCong + '</td></tr>' +
-      b.chiPhis.map(function (c) { return '<tr class="b"><td></td><td colspan="4">' + c[0] + '</td><td class="r">' + c[1] + '</td></tr>'; }).join('') +
-      '<tr class="b"><td></td><td colspan="4">TỔNG TIỀN</td><td class="r">' + b.tongTien + '</td></tr>' +
-      '<tr><td></td><td colspan="5"><i>Bằng chữ: ' + b.bangChu + '</i></td></tr>' +
+      '<tr class="b"><td></td><td colspan="4">TỔNG CỘNG ' + b.nhan + '</td><td class="r">' + b.tongCong + '</td><td></td></tr>' +
+      b.chiPhis.map(function (c) { return '<tr class="b"><td></td><td colspan="4">' + c[0] + '</td><td class="r">' + c[1] + '</td><td></td></tr>'; }).join('') +
+      '<tr class="b"><td></td><td colspan="4">TỔNG TIỀN</td><td class="r">' + b.tongTien + '</td><td></td></tr>' +
+      '<tr><td></td><td colspan="6"><i>Bằng chữ: ' + esc(H.toWords(b.tongTienSo, 'đồng')) + '</i></td></tr>' +
       '</tbody></table>';
 
-    var title = esc(opt.title || 'BIÊN BẢN NGHIỆM THU LẮP DỰNG KẾT CẤU THÉP');
+    // Bố cục theo file mẫu thật BienBanNghiemThu.docx (từ khóa: ngaythang, sovanban, hangmuc, thanhphanky, banghangmuc, chuky)
+    var title = esc(opt.title || 'BIÊN BẢN NGHIỆM THU SAU KHI THI CÔNG LẮP ĐẶT');
     return '<div class="hd-doc">' +
       '<table class="hd-doc-head"><tr>' +
-      '<td><b>CÔNG TY CP THÉP ESTEEL</b><br>Số: ' + single('so_van_ban', val(row.soVanBan)) + '</td>' +
+      '<td><b>CÔNG TY CỔ PHẦN HÓA CHẤT VIỆT TRÌ</b><br>Số: ' + single('sovanban', val(row.soVanBan)) + '</td>' +
       '<td><b>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</b><br><u>Độc lập – Tự do – Hạnh phúc</u></td></tr></table>' +
       '<h1>' + title + '</h1>' +
-      '<p>Công trình: ' + single('cong_trinh', val(hs.hangMuc)) + '</p>' +
-      '<p>Chủ đầu tư: ' + single('chu_dau_tu', val(hs.chuDauTu)) + '</p>' +
-      '<p>Nhà thầu thi công: ' + single('nha_thau', val(hs.nhaThau)) + '</p>' +
-      '<p><i>Hôm nay, ' + single('ngay_thang', ngayThang(row.ngayThang)) + ', tại công trình, chúng tôi gồm:</i></p>' +
+      '<p>Hạng mục: ' + single('hangmuc', val(hs.hangMuc)) + '</p>' +
+      '<p>Địa điểm: Công ty cổ phần Hóa chất Việt Trì</p>' +
+      '<p>Đơn vị thi công: Công ty TNHH Cơ khí E-Steel</p>' +
+      '<p><i>Hôm nay, ' + single('ngaythang', ngayThang(row.ngayThang)) + ', tại hiện trường, chúng tôi gồm:</i></p>' +
       '<p><b>1. Thành phần tham gia nghiệm thu:</b></p>' +
-      block('thanh_phan_ky', tpk) +
+      block('thanhphanky', tpk) +
       '<p><b>2. Nội dung nghiệm thu:</b> khối lượng thực hiện theo bảng sau:</p>' +
       block('banghangmuc', bang) +
-      '<p><b>3. Kết luận:</b> Đồng ý nghiệm thu, cho phép triển khai các công việc tiếp theo.</p>' +
+      '<p><b>3. Kết luận:</b> Đồng ý nghiệm thu, đưa thiết bị vào vận hành.</p>' +
       '<p class="hd-doc-c"><b>ĐẠI DIỆN CÁC BÊN KÝ TÊN</b></p>' +
-      block('chu_ky', chuKy) +
+      block('chuky', chuKy) +
       '</div>';
   };
 
   // ---------------------------------------------------------------- bảng tra từ khóa
   // Khớp HoSoFields.All (BE). Từ khóa gợi ý: hệ thống tự gán khi tên trùng mã trường (bỏ qua dấu "_").
+  // Ví dụ lấy theo hồ sơ "Hồ sơ quyết toán" trong DB.
   H.tuKhoaRows = [
-    ['Thông tin chung', '#ten_ho_so#', 'Tên hồ sơ', 'Hồ sơ nghiệm thu nhà xưởng Lô B'],
-    ['Thông tin chung', '#hang_muc#', 'Hạng mục', 'Kết cấu thép nhà xưởng Lô B'],
-    ['Thông tin chung', '#chu_dau_tu#', 'Chủ đầu tư', 'Công ty TNHH Cơ khí Minh Phát'],
-    ['Thông tin chung', '#nha_thau#', 'Nhà thầu', 'Công ty CP Thép Esteel'],
-    ['Thông tin chung', '#so_hoa_don#', 'Số hóa đơn', '0001234'],
-    ['Thông tin chung', '#phu_trach_thi_cong#', 'Phụ trách thi công', 'Ông: Lê Văn Cường'],
-    ['Thông tin chung', '#gia_tri#', 'Giá trị', '1.250.000.000'],
-    ['Chi tiết', '#noi_dung#', 'Nội dung (tên văn bản)', 'Biên bản nghiệm thu vật liệu đầu vào'],
-    ['Chi tiết', '#ngay_thang#', 'Ngày tháng', 'ngày 05 tháng 03 năm 2026'],
-    ['Chi tiết', '#ngay_thang_hoa#', 'Ngày tháng viết hoa', 'Ngày 05 tháng 03 năm 2026'],
-    ['Chi tiết', '#ngay# · #thang# · #nam#', 'Ngày / tháng / năm riêng', '05 · 03 · 2026'],
-    ['Chi tiết', '#so_van_ban#', 'Số văn bản', '01/2026/BB-NT'],
-    ['Chi tiết', '#ghi_chu#', 'Ghi chú', '(nội dung cột Ghi chú)'],
-    ['Chi tiết', '#thanh_phan_ky#', 'Thành phần ký — nhiều dòng', 'Bảng 2 cột: 1. Ông: Nguyễn Văn An | Chức vụ: Giám đốc'],
-    ['Chi tiết', '#chu_ky#', 'Chữ ký — chỉ người tích Chính', '1. Ông: Nguyễn Văn An: ................'],
-    ['Chi tiết', '#thanhphanky1#, #thanhphanky2#…', 'Người ký thứ 1, 2… (đếm cả ký phụ)', 'Ông: Nguyễn Văn An - Chức vụ: Giám đốc'],
+    ['Thông tin chung', '#tenhoso#', 'Tên hồ sơ', 'Hồ sơ quyết toán'],
+    ['Thông tin chung', '#hangmuc#', 'Hạng mục', 'Tháo dỡ và lắp đặt thay thế đoạn ống khí thải phun sấy PAC'],
+    ['Thông tin chung', '#chudautu#', 'Chủ đầu tư', 'Công ty cổ phần Hóa chất Việt Trì'],
+    ['Thông tin chung', '#nhathau#', 'Nhà thầu', 'Công ty TNHH Cơ khí E-Steel'],
+    ['Thông tin chung', '#sohoadon#', 'Số hóa đơn', '228'],
+    ['Thông tin chung', '#phutrachthicong#', 'Phụ trách thi công', 'Ông: Trần Hồng Quang'],
+    ['Thông tin chung', '#giatri#', 'Giá trị', '118.490.000'],
+    ['Chi tiết', '#noidung#', 'Nội dung (tên văn bản)', 'Hợp đồng kinh tế'],
+    ['Chi tiết', '#ngaythang#', 'Ngày tháng', 'ngày 16 tháng 10 năm 2026'],
+    ['Chi tiết', '#ngaythanghoa#', 'Ngày tháng viết hoa', 'Ngày 16 tháng 10 năm 2026'],
+    ['Chi tiết', '#ngay# · #thang# · #nam#', 'Ngày / tháng / năm riêng', '16 · 10 · 2026'],
+    ['Chi tiết', '#sovanban#', 'Số văn bản', '16.10/2026/HĐKT/HCVT-ESTEEL'],
+    ['Chi tiết', '#ghichu#', 'Ghi chú', '(nội dung cột Ghi chú)'],
+    ['Chi tiết', '#thanhphanky#', 'Thành phần ký — nhiều dòng', 'Bảng 2 cột: 1. Ông: Lương Đình Hưng | Chức vụ: KTV NMHN I'],
+    ['Chi tiết', '#chuky#', 'Chữ ký — chỉ người tích Chính', '1. Ông: Lương Đình Hưng: ................'],
+    ['Chi tiết', '#thanhphanky1#, #thanhphanky2#…', 'Người ký thứ 1, 2… (đếm cả ký phụ)', 'Ông: Lương Đình Hưng - Chức vụ: KTV NMHN I'],
     ['Bảng hạng mục', '#banghangmuc#', 'Cả bảng hạng mục (bảng do hồ sơ chọn)', 'Bảng có tiêu đề, các dòng, Tổng cộng…'],
-    ['Bảng hạng mục', '#tenbanghangmuc#', 'Tên bảng hạng mục', 'Khối lượng đợt 1'],
-    ['Bảng hạng mục', '#tong_tien_van_ban#', 'Tổng tiền (số) của văn bản này/khác', '785.416.500'],
-    ['Bảng hạng mục', '#tong_tien_van_ban_chu#', 'Tổng tiền bằng chữ', 'Bảy trăm tám mươi lăm triệu…'],
+    ['Bảng hạng mục', '#tenbanghangmuc#', 'Tên bảng hạng mục', 'Bảng hạng mục quyết toán'],
+    ['Bảng hạng mục', '#tongtienvanban#', 'Tổng tiền (số) của văn bản này/khác', BANG_MAU.tongTien],
+    ['Bảng hạng mục', '#tongtienvanbanchu#', 'Tổng tiền bằng chữ', 'Một trăm linh ba triệu…'],
   ];
   H.tuKhoaTableHtml = function () {
     var last = null;
     return '<div class="hd-doc hd-lookup"><h1>BẢNG TRA TỪ KHÓA</h1>' +
-      '<p class="hd-lookup-lead">Gõ từ khóa vào file Word/Excel mẫu. Từ khóa trùng tên trường (bỏ qua dấu <code>_</code>, không phân biệt hoa thường) được <b>tự gán</b> khi tải file lên; từ khóa khác bạn tự chọn trường ở màn Danh mục văn bản.</p>' +
+      '<p class="hd-lookup-lead">Gõ từ khóa vào file Word/Excel mẫu. Từ khóa trùng tên trường (có hay không dấu <code>_</code> đều được, không phân biệt hoa thường, vd <code>#ngaythang#</code> = <code>#ngay_thang#</code>) được <b>tự gán</b> khi tải file lên; từ khóa khác (vd <code>#tenhangmuc#</code>) bạn tự chọn trường ở màn Danh mục văn bản.</p>' +
       '<table class="hd-doc-grid hd-lookup-table" data-t="bang-tra-tu-khoa"><thead><tr><th>Từ khóa gợi ý</th><th>Dữ liệu in ra</th><th>Ví dụ</th></tr></thead><tbody>' +
       H.tuKhoaRows.map(function (r) {
         var g = r[0] !== last ? '<tr class="hd-lookup-group"><td colspan="3">' + esc(r[0]) + '</td></tr>' : '';
@@ -10266,9 +10347,9 @@ kbd {
       }).join('') + '</tbody></table>' +
       '<ul class="hd-lookup-notes">' +
       '<li>Chỉ nhận <b>.docx</b> và <b>.xlsx</b>. File .doc/.xls cũ: mở bằng Word/Excel → <i>Lưu thành</i> → chọn .docx/.xlsx.</li>' +
-      '<li>Từ khóa nhiều dòng (<code>#thanh_phan_ky#</code>, <code>#chu_ky#</code>, <code>#banghangmuc#</code>) đặt <b>riêng một dòng</b>.</li>' +
+      '<li>Từ khóa nhiều dòng (<code>#thanhphanky#</code>, <code>#chuky#</code>, <code>#banghangmuc#</code>) đặt <b>riêng một dòng</b>.</li>' +
       '<li>Từ khóa chưa gán hoặc dữ liệu trống được in thành <code>................</code> để điền tay.</li>' +
-      '<li>Excel: ô chỉ có <code>#gia_tri#</code> hoặc <code>#ngay_thang#</code> được ghi thành số/ngày thật; từ khóa nhiều dòng chèn thêm hàng.</li>' +
+      '<li>Excel: ô chỉ có <code>#giatri#</code> hoặc <code>#ngaythang#</code> được ghi thành số/ngày thật; từ khóa nhiều dòng chèn thêm hàng.</li>' +
       '</ul></div>';
   };
 
@@ -10304,7 +10385,7 @@ kbd {
       var w = s.state.word, win = this.win;
       win.querySelectorAll('[data-view]').forEach(function (b) { b.classList.toggle('is-active', b.getAttribute('data-view') === w.view); });
       var page = win.querySelector('[data-ref=w-page]');
-      var slotKeys = { chu_dau_tu: 1, ngay_thang: 1, thanh_phan_ky: 1, banghangmuc: 1, chu_ky: 1 };
+      var slotKeys = { hangmuc: 1, ngaythang: 1, thanhphanky: 1, banghangmuc: 1, chuky: 1 };
       if (w.view === 'tra-cuu') page.innerHTML = H.tuKhoaTableHtml();
       else {
         var hs = H.sampleHoSoDaNhap();
@@ -10318,14 +10399,16 @@ kbd {
   /** Mở cửa sổ Word giả và đặt thanh tab/địa chỉ cho hợp. */
   H.openWord = function (s) {
     s.show('word-preview');
-    s.setTabTitle('BB nghiem thu lap dung ket cau.docx - Word');
+    s.setTabTitle('BienBanNghiemThu.docx - Word');
     var url = document.getElementById('hd-url');
-    if (url) url.textContent = 'C:\\Mẫu hồ sơ\\BB nghiem thu lap dung ket cau.docx';
+    if (url) url.textContent = 'C:\\Mẫu hồ sơ\\BienBanNghiemThu.docx';
   };
 
   // ================================================================ XUẤT FILE (B6)
+  /** Đuôi file theo file mẫu của văn bản trong danh mục (vd Báo giá thực hiện = BaoGia.xlsx). */
   function fileName(hs, i, row) {
-    var ext = row.vanBanMauId === 4 || /quyết toán/i.test(row.tenVanBan) ? '.xlsx' : '.docx';
+    var vb = H.sample.vanBanMaus().filter(function (v) { return v.id === row.vanBanMauId; })[0];
+    var ext = vb && /\.xlsx$/i.test(vb.tenFile) ? '.xlsx' : '.docx';
     return ('0' + (i + 1)).slice(-2) + '_' + row.tenVanBan + ext;
   }
   /** Xuất luôn dùng dữ liệu đã lưu -> có thay đổi thì tự lưu trước (ensureSaved). */
@@ -10406,30 +10489,30 @@ HDSD.section({
         '<span class="hd-note">Chỗ nào cần điền dữ liệu hồ sơ thì gõ một <b>từ khóa</b> dạng <code>#tukhoa#</code>. Khi xuất, hệ thống thay từ khóa bằng dữ liệu.</span>',
     },
     {
-      target: '[data-t=kw-so_van_ban]', pad: 4,
-      text: 'Các chữ tô vàng như <code>#so_van_ban#</code>, <code>#nha_thau#</code> là từ khóa đã có sẵn.' +
+      target: '[data-t=kw-sovanban]', pad: 4,
+      text: 'Đây là file mẫu <b>Biên bản nghiệm thu sau khi thi công lắp đặt</b>. Chữ tô vàng <code>#sovanban#</code> là từ khóa đã có sẵn.' +
         '<span class="hd-note">Còn vài ô trống viền cam. Ta sẽ chèn từ khóa vào đó.</span>',
     },
     {
-      target: '[data-t=slot-chu_dau_tu]', wait: 'click', pad: 4,
-      text: 'Bấm ô trống sau <b>Chủ đầu tư:</b> để chèn <code>#chu_dau_tu#</code>.' +
-        '<span class="hd-note">Từ khóa không phân biệt hoa thường; có hay không dấu <code>_</code> đều được (<code>#chudautu#</code>).</span>',
+      target: '[data-t=slot-hangmuc]', wait: 'click', pad: 4,
+      text: 'Bấm ô trống sau <b>Hạng mục:</b> để chèn <code>#hangmuc#</code>.' +
+        '<span class="hd-note">Từ khóa không phân biệt hoa thường; có hay không dấu <code>_</code> đều được (<code>#hang_muc#</code>).</span>',
     },
     {
-      target: '[data-t=slot-ngay_thang]', wait: 'click', pad: 4,
-      text: 'Chèn <code>#ngay_thang#</code>. Khi xuất sẽ in <i>ngày 05 tháng 03 năm 2026</i> theo ngày của từng văn bản.',
+      target: '[data-t=slot-ngaythang]', wait: 'click', pad: 4,
+      text: 'Chèn <code>#ngaythang#</code>. Khi xuất sẽ in <i>ngày 26 tháng 10 năm 2026</i> theo ngày của từng văn bản.',
     },
     {
-      target: '[data-t=slot-thanh_phan_ky]', wait: 'click', pad: 4,
-      text: 'Chèn <code>#thanh_phan_ky#</code> trên <b>một dòng riêng</b>. Đây là từ khóa <b>nhiều dòng</b>: mỗi người ký thành một dòng.',
+      target: '[data-t=slot-thanhphanky]', wait: 'click', pad: 4,
+      text: 'Chèn <code>#thanhphanky#</code> trên <b>một dòng riêng</b>. Đây là từ khóa <b>nhiều dòng</b>: mỗi người ký thành một dòng.',
     },
     {
       target: '[data-t=slot-banghangmuc]', wait: 'click', pad: 4,
       text: 'Chèn <code>#banghangmuc#</code>, cũng trên một dòng riêng. Hệ thống tự <b>vẽ cả bảng</b> hạng mục của hồ sơ (tiêu đề, các dòng, Tổng cộng…).',
     },
     {
-      target: '[data-t=slot-chu_ky]', wait: 'click', pad: 4,
-      text: 'Cuối cùng chèn <code>#chu_ky#</code> ở phần ký tên. Chỉ những người được tích <b>Chính</b> mới có dòng ký.',
+      target: '[data-t=slot-chuky]', wait: 'click', pad: 4,
+      text: 'Cuối cùng chèn <code>#chuky#</code> ở phần ký tên. Chỉ những người được tích <b>Chính</b> mới có dòng ký.',
     },
     {
       target: '[data-t=btn-xem-ket-qua]', wait: 'click', pad: 4,
@@ -10437,7 +10520,7 @@ HDSD.section({
     },
     {
       target: '[data-t=fill-thanh_phan_ky]', pad: 6, placement: 'right',
-      text: 'Phần tô xanh là dữ liệu đã điền. <code>#thanh_phan_ky#</code> thành danh sách người ký, <code>#banghangmuc#</code> thành cả bảng, <code>#chu_ky#</code> thành các dòng ký.' +
+      text: 'Phần tô xanh là dữ liệu của <b>Hồ sơ quyết toán</b> đã điền. <code>#thanhphanky#</code> thành danh sách người ký, <code>#banghangmuc#</code> thành cả bảng hạng mục, <code>#chuky#</code> thành các dòng ký.' +
         '<span class="hd-note">Từ khóa chưa gán hoặc thiếu dữ liệu sẽ in <code>................</code> để điền tay.</span>',
     },
     {
@@ -10458,13 +10541,14 @@ HDSD.section({
 HDSD.section({
   id: 'A2',
   setup: function (s) {
-    s.state.vanBans = null;
+    // Bắt đầu khi chưa có "Hợp đồng kinh tế" (id 10): mục này khai báo nó
+    s.state.vanBans = HDSD.sample.vanBanMaus().filter(function (v) { return v.id !== 10; });
     s.state.filter = '';
     s.show('danh-muc-van-ban');
   },
   steps: [
     {
-      target: '[data-t=vb-row-1]', placement: 'bottom',
+      target: '[data-t=vb-row-2]', placement: 'bottom',
       text: 'Màn <b>Danh mục văn bản</b> liệt kê các văn bản có trong một bộ hồ sơ, mỗi văn bản kèm một <b>file mẫu</b>.' +
         '<span class="hd-note">Hồ sơ mới tự có đủ các văn bản đang dùng, theo cột <b>Thứ tự</b>.</span>',
     },
@@ -10473,13 +10557,13 @@ HDSD.section({
       text: 'Bấm <b>Thêm văn bản</b> để khai báo văn bản mới.',
     },
     {
-      target: '[data-t=vb-ten]', wait: 'type', value: 'Biên bản nghiệm thu lắp dựng kết cấu thép',
-      text: 'Nhập <b>Tên văn bản</b>. Tên này hiện ở cột Nội dung trong hồ sơ và in vào <code>#noi_dung#</code>.' +
+      target: '[data-t=vb-ten]', wait: 'type', value: 'Hợp đồng kinh tế',
+      text: 'Nhập <b>Tên văn bản</b>. Tên này hiện ở cột Nội dung trong hồ sơ và in vào <code>#noidung#</code>.' +
         '<span class="hd-note">Để trống thì hệ thống lấy theo tên file mẫu.</span>',
     },
     {
-      target: '[data-t=vb-thu-tu]', wait: 'type', value: '5',
-      text: '<b>Thứ tự</b> quyết định vị trí văn bản trong hồ sơ và số đầu tên file khi tải (<code>05_...docx</code>).',
+      target: '[data-t=vb-thu-tu]', wait: 'type', value: '7',
+      text: '<b>Thứ tự</b> quyết định vị trí văn bản trong hồ sơ và số đầu tên file khi tải (<code>07_Hợp đồng kinh tế.docx</code>).',
     },
     {
       target: '[data-t=btn-chon-file]', wait: 'click', pad: 4,
@@ -10487,7 +10571,7 @@ HDSD.section({
     },
     {
       target: '[data-t=os-file-0]', wait: 'click', pad: 0,
-      text: 'Chọn file <b>BB nghiem thu lap dung ket cau.docx</b>.' +
+      text: 'Chọn file <b>HopDongKinhTe.docx</b>.' +
         '<span class="hd-note">File .doc cũ sẽ bị từ chối: mở bằng Word → Lưu thành → chọn .docx.</span>',
     },
     {
@@ -10496,37 +10580,50 @@ HDSD.section({
     },
     {
       target: '[data-t=kw-table]', placement: 'left',
-      text: 'Đã tìm thấy 8 từ khóa. Từ khóa nào trùng tên trường (bỏ qua dấu <code>_</code>) đã được <b>tự gán</b>, ví dụ <code>#chu_dau_tu#</code> → Chủ đầu tư.' +
-        '<span class="hd-note">Huy hiệu <b>1 chưa gán</b> nhắc còn từ khóa cần chọn tay.</span>',
+      text: 'Đã tìm thấy 6 từ khóa. Từ khóa nào trùng tên trường đã được <b>tự gán</b>: <code>#sovanban#</code> → Số văn bản, <code>#ngaythang#</code> → Ngày tháng, <code>#banghangmuc#</code> → Bảng hạng mục.' +
+        '<span class="hd-note">Huy hiệu <b>3 chưa gán</b> nhắc còn từ khóa cần chọn tay.</span>',
     },
     {
-      target: '[data-t=kw-cong_trinh]', wait: 'click', pad: 6, placement: 'left',
-      text: '<code>#cong_trinh#</code> không trùng tên trường nào nên đang <b>— Chưa gán —</b>. Bấm vào ô để chọn dữ liệu cho nó.',
+      target: '[data-t=kw-tenhangmuc]', wait: 'click', pad: 6, placement: 'left',
+      text: '<code>#tenhangmuc#</code> không trùng tên trường nào (tên trường là <code>#hangmuc#</code>) nên đang <b>— Chưa gán —</b>. Bấm vào ô để chọn dữ liệu cho nó.',
     },
     {
       target: '[data-t=opt-HANG_MUC]', wait: 'click', pad: 0, placement: 'left',
-      text: 'Chọn <b>Hạng mục</b> (nhóm Thông tin chung). Từ giờ <code>#cong_trinh#</code> in hạng mục của hồ sơ.',
+      text: 'Chọn <b>Hạng mục</b> (nhóm Thông tin chung). Từ giờ <code>#tenhangmuc#</code> in hạng mục của hồ sơ.',
     },
     {
-      target: '[data-t=kw-chu_ky-ptc]', wait: 'click', pad: 4, placement: 'left',
-      text: 'Với <code>#chu_ky#</code>: tích <b>Thêm ký phụ trách thi công</b> để in thêm người phụ trách thi công (ô ở Thông tin hồ sơ) ở dòng ký cuối.',
+      target: '[data-t=kw-chiphihopdong]', wait: 'click', pad: 6, placement: 'left',
+      text: '<code>#chiphihopdong#</code> là chỗ in giá trị hợp đồng. Bấm vào ô để gán.',
+    },
+    {
+      target: '[data-t=opt-TONG_TIEN_VAN_BAN]', wait: 'click', pad: 0, placement: 'left',
+      text: 'Chọn <b>Tổng tiền (số)</b> (nhóm Bảng hạng mục): in số ở dòng TỔNG TIỀN của bảng hạng mục mà hồ sơ gán cho văn bản này.',
+    },
+    {
+      target: '[data-t=kw-chiphihopdong-nguon]', pad: 4, placement: 'left',
+      text: '<b>Lấy từ văn bản khác</b>: dùng khi văn bản này cần in số, ngày, tổng tiền… của <b>một văn bản khác</b> trong cùng hồ sơ.' +
+        '<span class="hd-note">Ví dụ <b>Quyết định phê duyệt chào hàng cạnh tranh</b> in <code>#chiphibaogia#</code> lấy từ <b>Báo giá thực hiện</b>. Hợp đồng in tổng tiền bảng của chính nó nên để trống.</span>',
+    },
+    {
+      target: '[data-t=kw-chiphihopdongtext]', wait: 'click', pad: 6, placement: 'left',
+      text: 'Gán tiếp <code>#chiphihopdongtext#</code>, chỗ in giá trị hợp đồng bằng chữ.',
+    },
+    {
+      target: '[data-t=opt-TONG_TIEN_VAN_BAN_CHU]', wait: 'click', pad: 0, placement: 'left',
+      text: 'Chọn <b>Tổng tiền (bằng chữ)</b>.',
     },
     {
       target: '[data-t=kw-banghangmuc-bs]', wait: 'click', pad: 4, placement: 'left',
-      text: 'Với <code>#banghangmuc#</code>: tích <b>Kèm dòng bổ sung</b> để in thêm Tổng cộng, chi phí phát sinh, Tổng tiền và Bằng chữ dưới bảng.',
-    },
-    {
-      target: '[data-t=kw-so_van_ban-nguon]', pad: 4, placement: 'left',
-      text: '<b>Lấy từ văn bản khác</b>: dùng khi văn bản này cần in số, ngày, người ký… của <b>một văn bản khác</b> trong cùng hồ sơ (ví dụ trích số biên bản trước).' +
-        '<span class="hd-note">Tích ô này rồi chọn <b>Văn bản nguồn</b>. Bình thường để trống.</span>',
+      text: 'Với <code>#banghangmuc#</code>: tích <b>Kèm dòng bổ sung</b> để hợp đồng in thêm Tổng cộng, Thuế VAT, Tổng tiền và Bằng chữ dưới bảng.' +
+        '<span class="hd-note">Từ khóa gán <b>Chữ ký</b> thì có ô <b>Thêm ký phụ trách thi công</b>, vd <code>#thanhphanky#</code> của Biên bản thu hồi vật tư.</span>',
     },
     {
       target: '[data-t=btn-luu-van-ban]', wait: 'click', pad: 4,
-      text: 'Bấm <b>Lưu văn bản</b>.',
+      text: 'Đã gán hết từ khóa. Bấm <b>Lưu văn bản</b>.',
     },
     {
-      target: '[data-t=vb-row-5]', placement: 'top',
-      text: 'Văn bản mới đã có trong danh mục. Hồ sơ tạo sau sẽ có thêm dòng này; hồ sơ đã có thì dùng nút <b>Đồng bộ</b> (mục B6).' +
+      target: '[data-t=vb-row-21]', placement: 'top',
+      text: 'Văn bản mới đã có trong danh mục, đứng ở Thứ tự 7. Hồ sơ tạo sau sẽ có thêm dòng này; hồ sơ đã có thì dùng nút <b>Đồng bộ</b> (mục B6).' +
         '<span class="hd-note">Văn bản đã dùng trong hồ sơ không xóa được: bấm Sửa và chuyển sang <b>Ngừng sử dụng</b>.</span>',
     },
   ],
@@ -10541,14 +10638,14 @@ HDSD.section({
   HDSD.section({
     id: 'A3',
     setup: function (s) {
-      // Bắt đầu khi chưa có "Khối lượng thi công": mục này tạo ra nó (B3 dùng lại)
+      // Bắt đầu khi chưa có "Bảng hạng mục Esteel": mục này tạo ra nó (B3 dùng lại)
       s.state.loaiBangs = HDSD.sample.loaiBangs().filter(function (l) { return l.id !== 1; });
       s.show('loai-bang');
     },
     steps: [
       {
         target: '[data-t=bang-loai-bang]',
-        text: 'Màn <b>Loại bảng hạng mục</b> (menu Hồ sơ → Loại bảng hạng mục). Mỗi loại bảng là một <b>khuôn cột</b> cho bảng hạng mục trong hồ sơ, vd bảng khối lượng, bảng vật liệu.' +
+        text: 'Màn <b>Loại bảng hạng mục</b> (menu Hồ sơ → Loại bảng hạng mục). Mỗi loại bảng là một <b>khuôn cột</b> cho bảng hạng mục trong hồ sơ, vd <b>Bảng đánh giá</b> các đơn vị thi công đã có sẵn ở đây.' +
           '<span class="hd-note">Khai báo một lần, dùng cho mọi hồ sơ. Một hồ sơ có thể có nhiều bảng cùng loại.</span>',
       },
       {
@@ -10556,7 +10653,7 @@ HDSD.section({
         text: 'Bấm <b>Thêm loại bảng</b>.',
       },
       {
-        target: '[data-t=lb-ten]', wait: 'type', value: 'Khối lượng thi công',
+        target: '[data-t=lb-ten]', wait: 'type', value: 'Bảng hạng mục Esteel',
         text: 'Nhập <b>Tên loại bảng</b>. Khi thêm bảng vào hồ sơ, tên này là tên bảng mặc định.',
       },
       {
@@ -10565,11 +10662,11 @@ HDSD.section({
           '<span class="hd-note">Dòng <i>STT (tự động)</i> trong bảng cột bên dưới là cột này. Trong hồ sơ vẫn sửa được STT từng dòng (vd I, II).</span>',
       },
       {
-        target: '[data-t=lb-tieu-de-0]', wait: 'type', value: 'Nội dung công việc',
+        target: '[data-t=lb-tieu-de-0]', wait: 'type', value: 'NỘI DUNG',
         text: 'Gõ <b>Tiêu đề cột</b> thứ nhất, là chữ in ở hàng tiêu đề của bảng.',
       },
       {
-        target: '[data-t=lb-do-rong-0]', wait: 'type', value: '40',
+        target: '[data-t=lb-do-rong-0]', wait: 'type', value: '30',
         text: '<b>Độ rộng %</b> so với chiều ngang trang Word. Để trống thì hệ thống chia đều phần còn lại.' +
           '<span class="hd-note">Góc phải hiện <b>Tổng độ rộng đã nhập</b>, tối đa 100%.</span>',
       },
@@ -10581,20 +10678,21 @@ HDSD.section({
         target: '[data-t=lb-bang-cot]', placement: 'top',
         before: function (s) {
           var f = form(s);
-          if (!f || f.model.cots.length >= 5) return;
+          if (!f || f.model.cots.length >= 6) return;
           var c = f.model.cots;
-          Object.assign(c[1], { tieuDe: 'ĐVT', doRong: 8 });
-          c.push({ id: 0, tieuDe: 'Khối lượng', doRong: 12, kieuSo: true, donVi: null, nhomCha: null });
-          c.push({ id: 0, tieuDe: 'Đơn giá', doRong: 15, kieuSo: true, donVi: 'đồng', nhomCha: null });
-          c.push({ id: 0, tieuDe: 'Thành tiền', doRong: 19, kieuSo: false, donVi: null, nhomCha: null });
+          Object.assign(c[1], { tieuDe: 'ĐVT', doRong: 6 });
+          c.push({ id: 0, tieuDe: 'SỐ LG', doRong: 10, kieuSo: false, donVi: null, nhomCha: null });
+          c.push({ id: 0, tieuDe: 'ĐƠN GIÁ', doRong: 15, kieuSo: true, donVi: 'đồng', nhomCha: null });
+          c.push({ id: 0, tieuDe: 'THÀNH TIỀN', doRong: 15, kieuSo: false, donVi: null, nhomCha: null });
+          c.push({ id: 0, tieuDe: 'GHI CHÚ', doRong: 18, kieuSo: false, donVi: null, nhomCha: null });
           f.render();
         },
-        text: 'Làm tương tự với các cột <b>ĐVT</b>, <b>Khối lượng</b>, <b>Đơn giá</b>, <b>Thành tiền</b>. Mình đã điền sẵn để bạn đỡ gõ.' +
-          '<span class="hd-note">Nút ↑ ↓ đổi thứ tự cột, nút × xóa cột.</span>',
+        text: 'Làm tương tự với các cột <b>ĐVT</b>, <b>SỐ LG</b>, <b>ĐƠN GIÁ</b>, <b>THÀNH TIỀN</b>, <b>GHI CHÚ</b>. Mình đã điền sẵn để bạn đỡ gõ.' +
+          '<span class="hd-note">Cộng với 6% của cột STT là vừa đủ 100%. Nút ↑ ↓ đổi thứ tự cột, nút × xóa cột.</span>',
       },
       {
         target: '[data-t=lb-kieu-so-4]', wait: 'click', pad: 8, placement: 'left',
-        text: 'Tích <b>Kiểu số</b> cho cột <b>Thành tiền</b>. Khi nhập, ô số tự thêm dấu chấm (<code>1.250.000</code>). Chỉ cột kiểu số mới dùng được làm <b>cột tính Tổng cộng</b>.',
+        text: 'Tích <b>Kiểu số</b> cho cột <b>THÀNH TIỀN</b> (cột ĐƠN GIÁ đã bật sẵn). Khi nhập, ô số tự thêm dấu chấm (<code>1.250.000</code>). Chỉ cột kiểu số mới dùng được làm <b>cột tính Tổng cộng</b>.',
       },
       {
         target: '[data-t=lb-don-vi-4]', wait: 'type', value: 'đồng', placement: 'left',
@@ -10602,14 +10700,14 @@ HDSD.section({
       },
       {
         target: '[data-t=lb-chon-3]', wait: 'click', pad: 8, placement: 'right',
-        text: 'Muốn tiêu đề <b>2 tầng</b>, tức một ô "Giá trị" phủ trên Đơn giá và Thành tiền? Tích ô chọn ở đầu dòng <b>Đơn giá</b>…',
+        text: 'Muốn tiêu đề <b>2 tầng</b>, tức một ô "GIÁ TRỊ" phủ trên ĐƠN GIÁ và THÀNH TIỀN? Thử tích ô chọn ở đầu dòng <b>ĐƠN GIÁ</b>…',
       },
       {
         target: '[data-t=lb-chon-4]', wait: 'click', pad: 8, placement: 'right',
-        text: '…và dòng <b>Thành tiền</b>. Chỉ gộp được các cột <b>liền kề</b> nhau.',
+        text: '…và dòng <b>THÀNH TIỀN</b>. Chỉ gộp được các cột <b>liền kề</b> nhau.',
       },
       {
-        target: '[data-t=lb-ten-nhom-moi]', wait: 'type', value: 'Giá trị',
+        target: '[data-t=lb-ten-nhom-moi]', wait: 'type', value: 'GIÁ TRỊ',
         text: 'Thanh gộp hiện ra. Nhập <b>tên cột cha</b>.',
       },
       {
@@ -10619,9 +10717,14 @@ HDSD.section({
       {
         target: function (s) { return s.$('[data-t=lb-nhom-3]'); }, placement: 'top',
         text: 'Dải xanh là <b>cột cha</b>. Khi in, tiêu đề bảng thành 2 hàng:' +
-          '<table class="f2-mini"><tr><th rowspan="2">STT</th><th rowspan="2">Nội dung công việc</th><th rowspan="2">ĐVT</th><th rowspan="2">Khối lượng</th><th colspan="2">Giá trị</th></tr>' +
-          '<tr><th>Đơn giá</th><th>Thành tiền</th></tr></table>' +
-          '<span class="hd-note">Trên dải: sửa tên cột cha, ↑ ↓ đưa <b>cả nhóm</b> lên/xuống, nút <b>Bỏ gộp</b> (biểu tượng mắt xích) tách lại các cột con.</span>',
+          '<table class="f2-mini"><tr><th rowspan="2">STT</th><th rowspan="2">NỘI DUNG</th><th rowspan="2">ĐVT</th><th rowspan="2">SỐ LG</th><th colspan="2">GIÁ TRỊ</th><th rowspan="2">GHI CHÚ</th></tr>' +
+          '<tr><th>ĐƠN GIÁ</th><th>THÀNH TIỀN</th></tr></table>' +
+          '<span class="hd-note">Trên dải: sửa tên cột cha, ↑ ↓ đưa <b>cả nhóm</b> lên/xuống. Loại <b>Bảng đánh giá</b> dùng cách này: cột cha <b>Chỉ tiêu</b> phủ 4 cột Giá, Tiến độ, Thanh toán, Bảo hành.</span>',
+      },
+      {
+        target: '[data-t=lb-bo-gop-3]', wait: 'click', pad: 4, placement: 'top',
+        text: 'Bảng hạng mục Esteel dùng tiêu đề 1 tầng, nên bấm nút <b>Bỏ gộp</b> (biểu tượng mắt xích) để tách lại các cột con.' +
+          '<span class="hd-note">Bỏ gộp chỉ xóa cột cha, các cột ĐƠN GIÁ, THÀNH TIỀN vẫn giữ nguyên.</span>',
       },
       {
         target: '[data-t=lb-goi-y]', placement: 'top',
@@ -10650,22 +10753,24 @@ HDSD.section({
   HDSD.section({
     id: 'A4',
     setup: function (s) {
-      // Bắt đầu khi chưa có "Thuế VAT {x}%": mục này tạo ra nó (B4 dùng lại)
+      // Bắt đầu khi chưa có "Thuế VAT (8%)": mục này tạo ra nó (B4 dùng lại). Danh mục thật chỉ có chi phí này -> bắt đầu từ danh sách trống.
       s.state.chiPhis = HDSD.sample.chiPhis().filter(function (c) { return c.id !== 1; });
       s.show('chi-phi-phat-sinh');
     },
     steps: [
       {
         target: '[data-t=bang-chi-phi]',
-        text: 'Màn <b>Chi phí phát sinh</b> (menu Hồ sơ → Chi phí phát sinh). Mỗi chi phí là một dòng in <b>giữa dòng Tổng cộng và dòng Bằng chữ</b> của bảng hạng mục, vd thuế VAT, giảm trừ tạm ứng.',
+        text: 'Màn <b>Chi phí phát sinh</b> (menu Hồ sơ → Chi phí phát sinh). Mỗi chi phí là một dòng in <b>giữa dòng Tổng cộng và dòng Bằng chữ</b> của bảng hạng mục, vd thuế VAT, giảm trừ tạm ứng.' +
+          '<span class="hd-note">Danh mục đang trống. Ta thêm chi phí đầu tiên.</span>',
       },
       {
         target: '[data-t=btn-them-chi-phi]', wait: 'click', pad: 6,
         text: 'Bấm <b>Thêm chi phí</b>.',
       },
       {
-        target: '[data-t=cp-ten]', wait: 'type', value: 'Thuế VAT {x}%',
-        text: 'Nhập <b>Tên chi phí</b>. <code>{x}</code> sẽ được thay bằng giá trị x nhập trong hồ sơ: "Thuế VAT {x}%" in ra thành "Thuế VAT 10%".',
+        target: '[data-t=cp-ten]', wait: 'type', value: 'Thuế VAT (8%)',
+        text: 'Nhập <b>Tên chi phí</b>. Tên được in đúng như gõ ở dòng chi phí trong bảng.' +
+          '<span class="hd-note">Muốn tên tự đổi theo giá trị x nhập trong hồ sơ thì gõ <code>{x}</code>: "Thuế VAT {x}%" với x = 8 in ra "Thuế VAT 8%".</span>',
       },
       {
         target: '[data-t=cp-dau]', pad: 6,
@@ -10699,11 +10804,11 @@ HDSD.section({
       {
         target: '[data-t=cp-giai-thich]', placement: 'top',
         before: flush,
-        text: '<code>TREN</code> là số ở dòng chi phí <b>ngay trên</b>. Ví dụ bảng có VAT rồi tới "Chi phí dự phòng {x}%" = <code>TREN * x%</code>:' +
-          '<table class="f2-mini"><tr><td>TỔNG CỘNG</td><td class="r">100.000.000</td></tr>' +
-          '<tr><td>Thuế VAT 10% <i>(TONG * x%)</i></td><td class="r">10.000.000</td></tr>' +
-          '<tr><td>Chi phí dự phòng 5% <i>(TREN * x%)</i></td><td class="r">500.000</td></tr>' +
-          '<tr class="b"><td>TỔNG TIỀN</td><td class="r">110.500.000</td></tr></table>' +
+        text: '<code>TREN</code> là số ở dòng chi phí <b>ngay trên</b>. Ví dụ minh họa: bảng của Hồ sơ quyết toán có VAT rồi thêm một dòng "Chi phí dự phòng {x}%" = <code>TREN * x%</code>:' +
+          '<table class="f2-mini"><tr><td>TỔNG CỘNG</td><td class="r">95.990.000</td></tr>' +
+          '<tr><td>Thuế VAT (8%) <i>(TONG * x%)</i></td><td class="r">7.679.200</td></tr>' +
+          '<tr><td>Chi phí dự phòng 5% <i>(TREN * x%)</i></td><td class="r">383.960</td></tr>' +
+          '<tr class="b"><td>TỔNG TIỀN</td><td class="r">104.053.160</td></tr></table>' +
           '<span class="hd-note">Dòng chi phí đầu tiên thì TREN = TONG. Số tiền mỗi dòng được làm tròn số nguyên.</span>',
       },
       {
@@ -10712,8 +10817,8 @@ HDSD.section({
         text: 'Bấm <b>Lưu chi phí</b>.',
       },
       {
-        target: '[data-t=cp-row-4]',
-        text: 'Chi phí mới đứng đầu danh sách (Thứ tự 1). Khi lập hồ sơ, bạn thêm chi phí này vào bảng hạng mục và nhập x = 10 (xem <b>B4</b>).' +
+        target: '[data-t=cp-row-1]',
+        text: 'Chi phí mới đã có trong danh sách. Khi lập hồ sơ, bạn thêm chi phí này vào bảng hạng mục và nhập x = 8 (xem <b>B4</b>).' +
           '<span class="hd-note">Hồ sơ lưu <b>bản sao</b> tên và công thức, nên sửa ở đây không làm đổi các hồ sơ cũ. Chi phí đã dùng thì không xóa được, chỉ chuyển Ngừng sử dụng.</span>',
       },
     ],
@@ -10741,8 +10846,8 @@ HDSD.section({
       text: 'Mỗi dòng là một hồ sơ: tên, hạng mục, chủ đầu tư, nhà thầu, số hóa đơn, giá trị và ngày tạo.',
     },
     {
-      target: '[data-t=tim-kiem]', wait: 'type', value: 'Minh Phát',
-      text: 'Gõ vào ô tìm kiếm. Ô này tìm theo tên hồ sơ, hạng mục, chủ đầu tư, nhà thầu và số hóa đơn.',
+      target: '[data-t=tim-kiem]', wait: 'type', value: 'Việt Trì',
+      text: 'Gõ vào ô tìm kiếm, ví dụ tên chủ đầu tư. Ô này tìm theo tên hồ sơ, hạng mục, chủ đầu tư, nhà thầu và số hóa đơn, không cần gõ dấu.',
     },
     {
       target: '[data-t=tim-kiem]', wait: 'key', key: 'Enter',
@@ -10784,7 +10889,8 @@ HDSD.section({
 HDSD.section({
   id: 'B2',
   setup: function (s) {
-    s.state.hoSos = HDSD.sample.hoSos();
+    // Lập lại từ đầu "Hồ sơ quyết toán" (hồ sơ thật trong DB) -> danh sách lúc đầu trống
+    s.state.hoSos = [];
     s.state.hoSo = HDSD.newHoSo();
     s.state.tab = 0;
     s.state.dirty = false;
@@ -10793,27 +10899,27 @@ HDSD.section({
   steps: [
     {
       target: '.hs-info-grid', placement: 'bottom', pad: 8,
-      text: 'Tab <b>Thông tin hồ sơ</b> chứa thông tin chung. Các ô này được in vào mọi văn bản qua từ khóa như <code>#ten_ho_so#</code>, <code>#chu_dau_tu#</code>, <code>#gia_tri#</code>.',
+      text: 'Tab <b>Thông tin hồ sơ</b> chứa thông tin chung. Các ô này được in vào mọi văn bản qua từ khóa như <code>#tenhoso#</code>, <code>#chudautu#</code>, <code>#giatri#</code>.',
     },
     {
-      target: '[data-t=in-tenHoSo]', wait: 'type', value: 'Hồ sơ nghiệm thu nhà kho số 2',
+      target: '[data-t=in-tenHoSo]', wait: 'type', value: 'Hồ sơ quyết toán',
       text: 'Nhập <b>Tên hồ sơ</b> (bắt buộc). Tên tab trình duyệt đổi theo để dễ phân biệt khi mở nhiều hồ sơ.',
     },
     {
-      target: '[data-t=in-hangMuc]', wait: 'type', value: 'Kết cấu thép nhà kho',
-      text: 'Nhập <b>Hạng mục</b>.',
+      target: '[data-t=in-hangMuc]', wait: 'type', value: 'Tháo dỡ và lắp đặt thay thế đoạn ống khí thải phun sấy PAC',
+      text: 'Nhập <b>Hạng mục</b>, là tên công việc thi công.',
     },
     {
-      target: '[data-t=in-chuDauTu]', wait: 'type', value: 'Công ty TNHH Cơ khí Minh Phát',
-      text: 'Nhập <b>Chủ đầu tư</b>. Nhà thầu và Số hóa đơn nhập tương tự.',
+      target: '[data-t=in-chuDauTu]', wait: 'type', value: 'Công ty cổ phần Hóa chất Việt Trì',
+      text: 'Nhập <b>Chủ đầu tư</b>. <b>Nhà thầu</b> (Công ty TNHH Cơ khí E-Steel) và <b>Số hóa đơn</b> (228) nhập tương tự.',
     },
     {
-      target: '[data-t=in-phuTrachThiCong]', wait: 'type', value: 'Ông: Lê Văn Cường',
+      target: '[data-t=in-phuTrachThiCong]', wait: 'type', value: 'Ông: Trần Hồng Quang',
       text: 'Nhập <b>Phụ trách thi công</b>, gồm cả danh xưng.' +
         '<span class="hd-note">Người này được thêm vào cuối phần chữ ký ở văn bản có tích "Kèm phụ trách thi công" (mục A2).</span>',
     },
     {
-      target: '[data-t=in-giaTri]', wait: 'type', value: '1250000000',
+      target: '[data-t=in-giaTri]', wait: 'type', value: '118490000',
       text: 'Nhập <b>Giá trị</b> bằng số. Dấu chấm phân cách hàng nghìn tự thêm khi gõ.',
     },
     {
@@ -10852,7 +10958,7 @@ var sec = {
   steps: [
     {
       target: '[data-t=tab-bang-hang-muc]', wait: 'click',
-      text: 'Bấm tab <b>Bảng hạng mục</b>. Đây là các bảng khối lượng, vật liệu… được in vào văn bản qua từ khóa <code>#banghangmuc#</code>.',
+      text: 'Bấm tab <b>Bảng hạng mục</b>. Đây là các bảng hạng mục, bảng đánh giá… được in vào văn bản qua từ khóa <code>#banghangmuc#</code>.',
     },
     {
       target: '[data-t=btn-them-bang]', wait: 'click', pad: 6,
@@ -10860,7 +10966,7 @@ var sec = {
     },
     {
       target: '[data-t=them-bang-1]', wait: 'click', placement: 'right',
-      text: 'Chọn <b>loại bảng</b>, tức bộ cột đã khai báo ở mục A3. Chọn <b>Khối lượng thi công</b>.',
+      text: 'Chọn <b>loại bảng</b>, tức bộ cột đã khai báo ở mục A3. Chọn <b>Bảng hạng mục Esteel</b>.',
     },
     {
       target: '[data-t=hm-0-head]', placement: 'bottom', pad: 6,
@@ -10868,15 +10974,16 @@ var sec = {
         '<span class="hd-note">Bấm vào thanh tiêu đề để thu gọn hoặc mở bảng.</span>',
     },
     {
-      target: '[data-t=hm-0-ten]', wait: 'type', value: 'Khối lượng đợt 1',
-      text: 'Tên bảng mặc định là tên loại bảng. Đổi lại cho dễ phân biệt, ví dụ khi một hồ sơ có nhiều đợt.',
+      target: '[data-t=hm-0-ten]', wait: 'type', value: 'Bảng hạng mục quyết toán',
+      text: 'Tên bảng mặc định là tên loại bảng. Đổi lại cho dễ phân biệt khi một hồ sơ có nhiều bảng cùng loại.',
     },
     {
       target: '[data-t=hm-0-thead]', placement: 'bottom',
-      text: 'Tiêu đề bảng giống hệt bản in. Ở đây <b>Đơn giá</b> và <b>Thành tiền</b> được gộp dưới cột cha <b>Giá trị</b> (tiêu đề 2 tầng).',
+      text: 'Tiêu đề bảng giống hệt bản in: STT tự động rồi tới các cột đã khai báo ở mục A3 (NỘI DUNG … GHI CHÚ).' +
+        '<span class="hd-note">Loại bảng có cột cha (như Bảng đánh giá) thì tiêu đề hiện 2 tầng.</span>',
     },
     {
-      target: '[data-t=hm-0-0-0]', wait: 'type', value: 'Lắp dựng khung kèo thép',
+      target: '[data-t=hm-0-0-0]', wait: 'type', value: 'Vật tư phụ (Đá mài, đá cắt, que hàn, oxy, gas)',
       text: 'Gõ vào ô đầu tiên.',
     },
     {
@@ -10885,21 +10992,25 @@ var sec = {
         '<span class="hd-note">Muốn xuống dòng trong cùng một ô thì nhấn <kbd>Shift</kbd> + <kbd>Enter</kbd>. Phím mũi tên cũng dùng để di chuyển giữa các ô.</span>',
     },
     {
-      target: '[data-t=hm-0-0-3]', wait: 'type', value: '7990000',
+      target: '[data-t=hm-0-0-3]', wait: 'type', value: '1500000',
       before: function (s) {
         // Điền nhanh ĐVT, Khối lượng để bước này tập trung vào ô số
-        [['hm-0-0-1', 'tấn'], ['hm-0-0-2', '12']].forEach(function (p) {
+        [['hm-0-0-1', 'Gói'], ['hm-0-0-2', '1']].forEach(function (p) {
           var el = s.t(p[0]); if (el && !el.value) s.setValue(el, p[1]);
         });
       },
-      text: 'Đã điền sẵn ĐVT và Khối lượng. Gõ <b>Đơn giá</b>: với cột <b>kiểu số</b>, dấu chấm hàng nghìn tự thêm khi gõ, đơn vị <i>đồng</i> hiện mờ ở cuối ô.',
+      text: 'Đã điền sẵn ĐVT và SỐ LG. Gõ <b>ĐƠN GIÁ</b>: với cột <b>kiểu số</b>, dấu chấm hàng nghìn tự thêm khi gõ, đơn vị <i>đồng</i> hiện mờ ở cuối ô.',
     },
     {
-      target: '[data-t=hm-0-0-4]', wait: 'type', value: '95880000',
-      text: 'Gõ <b>Thành tiền</b>. Bảng không tự nhân, bạn nhập đúng số muốn in.',
+      target: '[data-t=hm-0-0-4]', wait: 'type', value: '1500000',
+      text: 'Gõ <b>THÀNH TIỀN</b>. Bảng không tự nhân, bạn nhập đúng số muốn in.',
     },
     {
       target: '[data-t=hm-0-0-4]', wait: 'key', key: 'Enter',
+      text: 'Nhấn <kbd>Enter</kbd> sang ô <b>GHI CHÚ</b>. Dòng này không cần ghi chú.',
+    },
+    {
+      target: '[data-t=hm-0-0-5]', wait: 'key', key: 'Enter',
       text: 'Ở ô cuối của dòng cuối, nhấn <kbd>Enter</kbd> sẽ <b>thêm dòng mới</b>.',
     },
     {
@@ -10912,7 +11023,7 @@ var sec = {
         el.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, bubbles: true, cancelable: true }));
       },
       text: 'Có sẵn số liệu trong Excel? Chọn vùng ô bên Excel, nhấn <kbd>Ctrl</kbd> + <kbd>C</kbd>, rồi bấm vào ô bắt đầu ở đây và nhấn <kbd>Ctrl</kbd> + <kbd>V</kbd>.' +
-        '<span class="hd-note">Trong bản mô phỏng, Ctrl + V dán sẵn 2 dòng mẫu, kèm một dòng tiêu đề lỡ copy cùng. Dòng tiêu đề đó sẽ tự bị bỏ.</span>',
+        '<span class="hd-note">Trong bản mô phỏng, Ctrl + V dán sẵn 2 dòng của bảng thật (Khảo sát công việc…, Công tác lĩnh vật tư…), kèm một dòng tiêu đề lỡ copy cùng. Dòng tiêu đề đó sẽ tự bị bỏ.</span>',
     },
     {
       target: '[data-t=hm-0-0-stt]', wait: 'type', value: 'I',
@@ -10950,25 +11061,19 @@ HDSD.section(sec);
 (function () {
   var H = window.HDSD;
 
-  /** Bảng "Khối lượng đợt 1" đã nhập: dòng nhóm I, II (STT sửa tay) mang số tổng của nhóm. */
+  /** Bảng hạng mục thật của hồ sơ 1 (H.sample.bangHangMuc): dòng nhóm I, II, III (STT sửa tay) mang số tổng của nhóm. */
   function bangMau() {
     var lb = H.sample.loaiBangs()[0];
-    var row = function (stt, a, b, c, d, e) {
-      var du = { 11: a || '', 12: b || '', 13: c || '', 14: d || '', 15: e || '' };
-      if (stt != null) du._stt = stt;
-      return { duLieu: du };
-    };
     return {
-      id: 7, loaiBangId: lb.id, tenLoaiBang: lb.tenLoaiBang, loaiBangIsActive: true, tuDanhStt: true,
-      tenBang: 'Khối lượng đợt 1', cots: lb.cots, coTongCong: true, cotTongId: null, chiPhis: [],
-      dongBoSungTheoVanBan: { 3: true },
-      dongs: [
-        row('I', 'Phần kết cấu thép', '', '', '', '95880000'),
-        row(null, 'Lắp dựng khung kèo thép', 'tấn', '12', '7990000', '95880000'),
-        row('II', 'Phần mái', '', '', '', '114300000'),
-        row(null, 'Sơn chống gỉ kết cấu thép', 'm2', '320', '45000', '14400000'),
-        row(null, 'Lợp tôn mái dày 0,45mm', 'm2', '540', '185000', '99900000'),
-      ],
+      id: 5, loaiBangId: lb.id, tenLoaiBang: lb.tenLoaiBang, loaiBangIsActive: true, tuDanhStt: true,
+      tenBang: 'Bảng hạng mục quyết toán', cots: lb.cots, coTongCong: true, cotTongId: null, chiPhis: [],
+      dongBoSungTheoVanBan: {},
+      dongs: H.sample.bangHangMuc().map(function (d) {
+        var du = {};
+        lb.cots.forEach(function (c, i) { du[c.id] = d[i + 1] || ''; });
+        if (d[0] != null) du._stt = d[0];
+        return { duLieu: du };
+      }),
     };
   }
 
@@ -10985,8 +11090,8 @@ HDSD.section(sec);
     steps: [
       {
         target: '[data-t=hm-0] .hm-table', placement: 'bottom',
-        text: 'Bảng đã nhập có 2 dòng nhóm <b>I</b> và <b>II</b> (STT sửa tay), mỗi dòng nhóm mang số tổng của nhóm đó.' +
-          '<span class="hd-note">Giờ ta thêm dòng <b>TỔNG CỘNG (I + II)</b>, thuế VAT, TỔNG TIỀN và <b>Bằng chữ</b> vào cuối bảng khi in.</span>',
+        text: 'Bảng hạng mục của Hồ sơ quyết toán có 3 dòng nhóm <b>I</b>, <b>II</b>, <b>III</b> (STT sửa tay), mỗi dòng nhóm mang số tổng của nhóm đó.' +
+          '<span class="hd-note">Giờ ta thêm dòng <b>TỔNG CỘNG (I + II + III)</b>, thuế VAT, TỔNG TIỀN và <b>Bằng chữ</b> vào cuối bảng khi in.</span>',
       },
       {
         target: '[data-t=hm-0-dong-bo-sung]', wait: 'click', pad: 6,
@@ -10998,7 +11103,7 @@ HDSD.section(sec);
       },
       {
         target: '.c-tong-cong-dialog .tc-field', placement: 'bottom', pad: 6,
-        text: '<b>Cột tính tổng</b> chỉ cho chọn cột kiểu số và mặc định là cột số cuối cùng (<b>Thành tiền</b>).' +
+        text: '<b>Cột tính tổng</b> chỉ cho chọn cột kiểu số và mặc định là cột số cuối cùng (<b>THÀNH TIỀN</b>).' +
           '<span class="hd-note">Chữ "TỔNG CỘNG" được ghi ở cột ngay sau STT.</span>',
       },
       {
@@ -11008,7 +11113,7 @@ HDSD.section(sec);
       },
       {
         target: '[data-t=tc-preview]', placement: 'top', pad: 6,
-        text: 'Khung xem trước hiện <b>TỔNG CỘNG (I + II)</b> và <b>Bằng chữ</b>, đọc đúng như khi in. Đuôi "đồng" lấy theo đơn vị của cột Thành tiền.',
+        text: 'Khung xem trước hiện <b>TỔNG CỘNG (I + II + III)</b> = 95.990.000 và <b>Bằng chữ</b>, đọc đúng như khi in. Đuôi "đồng" lấy theo đơn vị của cột THÀNH TIỀN.',
       },
       {
         target: '[data-t=tc-them-chi-phi]', wait: 'click', pad: 6,
@@ -11016,24 +11121,25 @@ HDSD.section(sec);
       },
       {
         target: '[data-t=cp-1]', wait: 'click', placement: 'right',
-        text: 'Chọn <b>Thuế VAT {x}%</b>. Dấu + hay − ở đầu cho biết chi phí được cộng hay trừ vào tổng tiền.',
+        text: 'Chọn <b>Thuế VAT (8%)</b>. Dấu + hay − ở đầu cho biết chi phí được cộng hay trừ vào tổng tiền.',
       },
       {
-        target: '[data-t=tc-cp-0-x]', wait: 'type', value: '10', pad: 6,
-        text: 'Nhập <b>x</b> = 10. Công thức <code>TONG * x%</code> tính ra 10% của dòng Tổng cộng, và <code>{x}</code> trong tên đổi thành "10".',
+        target: '[data-t=tc-cp-0-x]', wait: 'type', value: '8', pad: 6,
+        text: 'Nhập <b>x</b> = 8. Công thức <code>TONG*x%</code> tính ra 8% của dòng Tổng cộng.',
       },
       {
         target: '[data-t=tc-preview]', placement: 'top', pad: 6,
-        text: 'Xem trước có thêm dòng <b>Thuế VAT 10%</b> (làm tròn số nguyên) và <b>TỔNG TIỀN</b>. Bằng chữ đọc số TỔNG TIỀN.',
+        text: 'Xem trước có thêm dòng <b>Thuế VAT (8%)</b> = 7.679.200 và <b>TỔNG TIỀN</b> = 103.669.200. Bằng chữ đọc số TỔNG TIỀN.',
       },
       {
-        target: '[data-t=tc-vb-2-in]', wait: 'click', pad: 6, placement: 'top',
-        text: 'Phần <b>3</b> chọn văn bản nào in bảng này. Tích <b>Biên bản nghiệm thu công việc xây dựng</b> để in bảng vào văn bản đó.' +
+        target: '[data-t=tc-vb-10-in]', wait: 'click', pad: 6, placement: 'top',
+        text: 'Phần <b>3</b> chọn văn bản nào in bảng này (danh sách là các văn bản có từ khóa bảng hạng mục). Tích <b>Hợp đồng kinh tế</b>.' +
           '<span class="hd-note">Mỗi văn bản chỉ in một bảng hạng mục.</span>',
       },
       {
-        target: '[data-t=tc-vb-2-kem]', wait: 'click', pad: 6, placement: 'top',
-        text: 'Tích <b>Kèm dòng bổ sung</b> để văn bản này in cả Tổng cộng, VAT, Tổng tiền, Bằng chữ. Không tích thì văn bản chỉ in phần bảng.',
+        target: '[data-t=tc-vb-10-kem]', pad: 6, placement: 'top',
+        text: '<b>Kèm dòng bổ sung</b> tự được tích vì ở mục A2 ta đã tích ô này cho <code>#banghangmuc#</code> của Hợp đồng kinh tế. Hợp đồng sẽ in cả Tổng cộng, VAT, Tổng tiền, Bằng chữ.' +
+          '<span class="hd-note">Bỏ tích thì văn bản chỉ in phần bảng.</span>',
       },
       {
         target: '[data-t=tc-ap-dung]', wait: 'click', pad: 6, placement: 'top',
@@ -11041,7 +11147,7 @@ HDSD.section(sec);
       },
       {
         target: '[data-t=hm-0-tong]', placement: 'top', pad: 6,
-        text: 'Dưới bảng hiện tóm tắt <b>Tổng cộng (I + II) = 210.180.000 · 1 dòng chi phí</b>, và tiêu đề bảng ghi tên các văn bản in bảng.' +
+        text: 'Dưới bảng hiện tóm tắt <b>Tổng cộng (I + II + III) = 95.990.000 · 1 dòng chi phí</b>, và tiêu đề bảng ghi tên các văn bản in bảng.' +
           '<span class="hd-note">Nhấn <kbd>Ctrl</kbd> + <kbd>S</kbd> để lưu hồ sơ.</span>',
       },
     ],
@@ -11073,13 +11179,14 @@ HDSD.section({
         '<span class="hd-note">Thứ tự cột: Nội dung · Số văn bản · Ngày tháng · Thành phần ký · Ghi chú · nút tải.</span>',
     },
     {
-      target: '[data-t=so-van-ban-0]', wait: 'type', value: '01/2026/BB-NT',
-      text: 'Nhập <b>Số văn bản</b> của biên bản này. Giá trị được in vào từ khóa <code>#so_van_ban#</code> trong file mẫu.',
+      target: '[data-t=so-van-ban-0]', pad: 4,
+      text: 'Ô <b>Số văn bản</b> in vào từ khóa <code>#sovanban#</code>. File mẫu Biên bản thu hồi vật tư không có từ khóa này nên để trống.' +
+        '<span class="hd-note">Văn bản có số thì nhập ở đây, vd Hợp đồng kinh tế: <code>16.10/2026/HĐKT/HCVT-ESTEEL</code>.</span>',
     },
     {
-      target: '[data-t=ngay-0]', wait: 'type', value: '05/03/2026',
+      target: '[data-t=ngay-0]', wait: 'type', value: '26/10/2026',
       text: 'Nhập <b>Ngày tháng</b> dạng ngày/tháng/năm, hoặc bấm biểu tượng lịch để chọn.' +
-        '<span class="hd-note">Văn bản in ra: <i>ngày 05 tháng 03 năm 2026</i>.</span>',
+        '<span class="hd-note">Văn bản in ra: <i>ngày 26 tháng 10 năm 2026</i>.</span>',
     },
     {
       target: '[data-t=ky-0]', placement: 'left',
@@ -11087,7 +11194,7 @@ HDSD.section({
         '<span class="hd-note">Bạn nhập hoàn toàn bằng bàn phím, không cần dùng chuột.</span>',
     },
     {
-      target: '[data-t=ky-0-0-ten]', wait: 'type', value: 'Ông: Nguyễn Văn An', placement: 'left',
+      target: '[data-t=ky-0-0-ten]', wait: 'type', value: 'Ông: Lương Đình Hưng', placement: 'left',
       text: 'Gõ họ tên người ký thứ nhất. Gõ luôn danh xưng <b>Ông:</b> hoặc <b>Bà:</b> vì văn bản in đúng như bạn gõ.',
     },
     {
@@ -11095,7 +11202,7 @@ HDSD.section({
       text: 'Nhấn <kbd>Tab</kbd> để sang ô <b>Chức vụ</b>.',
     },
     {
-      target: '[data-t=ky-0-0-cv]', wait: 'type', value: 'Giám đốc', placement: 'left',
+      target: '[data-t=ky-0-0-cv]', wait: 'type', value: 'KTV NMHN I', placement: 'left',
       text: 'Gõ chức vụ.',
     },
     {
@@ -11103,7 +11210,7 @@ HDSD.section({
       text: 'Nhấn <kbd>Enter</kbd> để thêm người ký mới ngay bên dưới. Con trỏ tự nhảy sang ô Họ tên của dòng mới.',
     },
     {
-      target: '[data-t=ky-0-1-ten]', wait: 'type', value: 'Bà: Trần Thị Bình', placement: 'left',
+      target: '[data-t=ky-0-1-ten]', wait: 'type', value: 'Ông: Phan Hồng Hải', placement: 'left',
       text: 'Gõ họ tên người ký thứ hai.',
     },
     {
@@ -11111,7 +11218,7 @@ HDSD.section({
       text: 'Lại nhấn <kbd>Tab</kbd> để sang ô Chức vụ.',
     },
     {
-      target: '[data-t=ky-0-1-cv]', wait: 'type', value: 'Kỹ sư giám sát', placement: 'left',
+      target: '[data-t=ky-0-1-cv]', wait: 'type', value: 'PT An toàn', placement: 'left',
       text: 'Gõ chức vụ.',
     },
     {
@@ -11125,13 +11232,13 @@ HDSD.section({
     },
     {
       target: '[data-t=ky-0]', placement: 'left',
-      text: 'Cột <b>STT</b> (1., 2.) cho biết người nào ứng với từ khóa <code>#thanhphanky1#</code>, <code>#thanhphanky2#</code>… trong file mẫu.' +
+      text: 'Cột <b>STT</b> (1., 2.) cho biết người nào ứng với từ khóa <code>#thanhphanky1#</code>, <code>#thanhphanky2#</code>… File mẫu Biên bản thu hồi vật tư dùng đúng các từ khóa này.' +
         '<span class="hd-note">Dòng trống không được đánh số, nên STT luôn khớp với người được in ra.</span>',
     },
     {
-      target: '[data-t=ky-0-1-chinh]', wait: 'click', pad: 8, placement: 'left',
-      text: 'Ô tích <b>Chính</b>: người được tích mới hiện ở <b>phần chữ ký</b> (<code>#chuky#</code>). Người thêm mới mặc định được tích.' +
-        '<span class="hd-note">Bấm để bỏ tích người thứ hai. Người này vẫn có trong thành phần ký, chỉ không có chỗ ký.</span>',
+      target: '[data-t=ky-0-1-chinh]', pad: 8, placement: 'left',
+      text: 'Ô tích <b>Chính</b>: người được tích mới hiện ở <b>phần chữ ký</b> (<code>#chuky#</code>). Người thêm mới mặc định được tích. Ở hồ sơ này ai cũng ký nên giữ nguyên.' +
+        '<span class="hd-note">Bỏ tích thì người đó vẫn có trong thành phần ký, chỉ không có chỗ ký. Biên bản thu hồi vật tư còn in thêm người phụ trách thi công (Ông: Trần Hồng Quang) ở dòng ký cuối.</span>',
     },
     {
       target: '[data-t=ky-0-ap-dung]', wait: 'click', pad: 6, placement: 'left',
@@ -11143,7 +11250,7 @@ HDSD.section({
     },
     {
       target: '[data-row="1"] .col-ky', placement: 'left',
-      text: 'Văn bản 2 và 3 đã có cùng danh sách người ký. Bạn vẫn sửa riêng từng dòng được nếu cần.',
+      text: 'Biên bản khảo sát đánh giá hiện trạng thiết bị và các văn bản khác đã có cùng danh sách người ký. Bạn vẫn sửa riêng từng dòng được nếu cần.',
     },
     {
       target: '[data-t=btn-luu]', wait: 'key', key: 'ctrl+s', orClick: true, pad: 6,
@@ -11159,6 +11266,8 @@ HDSD.section({
   id: 'B6',
   setup: function (s) {
     var hs = HDSD.sampleHoSoDaNhap();
+    // "Nhật ký thi công" (id 20) khai báo sau khi lập hồ sơ -> chưa có trong hồ sơ, chờ Đồng bộ
+    hs.chiTiets = hs.chiTiets.filter(function (c) { return c.vanBanMauId !== 20; });
     hs.soVanBanMoi = 1;
     s.state.hoSo = hs;
     s.state.tab = 2;
@@ -11172,8 +11281,8 @@ HDSD.section({
     },
     {
       target: '[data-t=preview-page]', placement: 'left', pad: 0,
-      text: 'File tải về đã điền đủ: số văn bản, ngày, thành phần ký, bảng hạng mục và phần chữ ký.' +
-        '<span class="hd-note">Tên file: <code>01_Biên bản nghiệm thu vật liệu đầu vào.docx</code>, số đầu là thứ tự văn bản trong hồ sơ.</span>',
+      text: 'File tải về đã điền dữ liệu của Hồ sơ quyết toán: hạng mục, ngày, thành phần ký, bảng hạng mục và phần chữ ký.' +
+        '<span class="hd-note">Tên file: <code>01_Biên bản thu hồi vật tư.docx</code>, số đầu là thứ tự văn bản trong hồ sơ. Văn bản mẫu Excel (vd Báo giá thực hiện) tải về dạng .xlsx.</span>',
     },
     {
       target: '[data-t=preview-close]', wait: 'click', pad: 4,
@@ -11201,14 +11310,14 @@ HDSD.section({
       text: 'Bấm <b>Đồng bộ</b> để thêm các văn bản mới vào hồ sơ. Dữ liệu đã nhập được giữ nguyên.',
     },
     {
-      target: '[data-row="3"] .col-noidung', placement: 'right', pad: 6,
+      target: '[data-row="17"] .col-noidung', placement: 'right', pad: 6,
       // Ô tự giãn chỉ đo lại ở khung hình sau -> đo ngay để cuộn tới đúng dòng mới
       before: function (s) {
         s.frame.querySelectorAll('textarea.cdk-textarea-autosize').forEach(function (ta) {
           ta.style.height = 'auto'; ta.style.height = Math.max(35, ta.scrollHeight + 2) + 'px';
         });
       },
-      text: 'Dòng <b>Bảng tính giá trị quyết toán</b> đã được thêm. Nhập số, ngày, người ký cho dòng này rồi lưu như mục B5.',
+      text: 'Dòng <b>Nhật ký thi công</b> đã được thêm vào cuối. Nhập số, ngày, người ký cho dòng này rồi lưu như mục B5.',
     },
   ],
 });
